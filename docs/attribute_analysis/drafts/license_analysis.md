@@ -16,6 +16,7 @@ This section provides an overview of the ecosystems and package managers reviewe
 
 ### Python Ecosystem — PyPI (pip)
 **License Information Available**: SPDX expression (in Python > 3.17), with ambiguous alternatives retained for backward compatibility
+
 **References**:
 - [Python Packaging User Guide — Dependency Specifiers](https://packaging.python.org/en/latest/specifications/dependency-specifiers/#dependency-specifiers)
 - PEP 621 ([Storing project metadata in pyproject.toml](https://peps.python.org/pep-0621/))
@@ -25,6 +26,31 @@ This section provides an overview of the ecosystems and package managers reviewe
 ### Container Ecosystem — Docker
 **License Information Available**: No
 **Reference**: [Dockerfile reference](https://docs.docker.com/engine/reference/builder/)
+
+### Go Ecosystem — Go Modules
+**License Information Available**: No dedicated `license` field in `go.mod`. License information is inferred from license files (e.g., `LICENSE`) present in the module’s source and redistributed module ZIP; `pkg.go.dev` detects licenses heuristically. There is no official module proxy or `go` CLI endpoint that returns structured license metadata. However, the [`go-licenses`](https://github.com/google/go-licenses) tool can be used to extract and map license data from module sources, though its coverage and accuracy depend on file placement and text heuristics.
+
+**References**:
+- [Go Modules Reference](https://go.dev/ref/mod) — Module format and proxy behavior.
+- [pkg.go.dev License Policy](https://pkg.go.dev/license-policy) — Heuristic detection and redistributable behavior, which mentions the internal catalog is build using [licensecheck](https://pkg.go.dev/github.com/google/licensecheck).
+- [Go module proxy protocol](https://golang.org/ref/mod#protocol) — Lists `.mod`, `.info`, and `.zip` endpoints, confirming absence of a license field.
+- Common tooling used in practice: [`licensecheck`](https://pkg.go.dev/golang.org/x/license) library and [`go-licenses`](https://github.com/google/go-licenses) CLI for detection and normalization.
+
+### JavaScript Ecosystem — npm
+**License Information Available**: The npm ecosystem provides a structured `license` field in `package.json`, which can contain an SPDX identifier or expression, with an escape hatch to reference a license file using the value `SEE LICENSE IN <filename>`. When a license file is present, it is typically named `LICENSE` or `LICENSE.md` and included in the published package tarball. The npm registry surfaces this metadata through both its web interface and JSON API. The publication process does not enforce SPDX or `SEE LICENSE IN` formats; it emits a warning from the [`validate-npm-package-license`](https://github.com/kemitchell/validate-npm-package-license) library but still accepts the package.
+
+**References**:
+- [npm package.json specification – license field](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#license)
+- [npm registry API reference](https://github.com/npm/registry/blob/main/docs/REGISTRY-API.md)
+
+### PHP Ecosystem — Composer (Packagist)
+**License Information Available**: Composer provides a structured `license` field in `composer.json`. It accepts an SPDX identifier, an SPDX expression using `and` or `or`, or an array of SPDX identifiers. The array form has a defined semantics of representing a sequence of `OR` alternatives, not an ambiguous list. For closed-source packages, an escape hatch is available via the value `proprietary`. Packagist surfaces this metadata on package pages and through its JSON API.
+Composer validates license values against the SPDX list using the [`composer/spdx-licenses`](https://github.com/composer/spdx-licenses) library, but publication is not blocked for invalid values.
+
+**References**:
+- [Composer schema — license field](https://getcomposer.org/doc/04-schema.md#license)
+- [composer/spdx-licenses validation library](https://github.com/composer/spdx-licenses)
+- [Packagist API reference](https://packagist.org/apidoc)
 
 ## 3. Field Analysis
 
@@ -39,6 +65,25 @@ This section groups ecosystems according to how license information can be speci
   - Escape hatch: reference to a license file in the package repository
 - Cargo enforces SPDX validation, which ensures unambiguous interpretation of declared licenses.
 
+#### JavaScript Ecosystem — npm
+- **Accepted definitions**:
+  - SPDX license identifiers.
+  - SPDX license expressions.
+  - Escape hatch: reference to a license file using the value `SEE LICENSE IN <filename>`.
+- npm validates license values during publication but does not enforce them. Non-SPDX strings trigger warnings from the [`validate-npm-package-license`](https://github.com/kemitchell/validate-npm-package-license) library, yet packages are still accepted.
+- Ambiguity occurs when legacy packages use free-form text, custom license strings, or omit the `license` field entirely.
+- The `package.json` metadata and any `LICENSE` files included in the package tarball together define the licensing information. Registry entries reflect whatever was provided at publish time.
+
+#### PHP Ecosystem — Composer (Packagist)
+- **Accepted definitions**:
+  - SPDX license identifiers.
+  - SPDX license expressions.
+  - Escape hatch: `proprietary`, used for closed-source packages.
+  - Array of SPDX identifiers, with a documented `OR` semantics.
+- Composer validates declared licenses using the [`composer/spdx-licenses`](https://github.com/composer/spdx-licenses) library. Invalid identifiers or expressions trigger warnings but do not prevent publication.
+- Ambiguity mainly arises from legacy packages that predate SPDX adoption or that omit the `license` field entirely.
+- The `license` field in `composer.json` is the canonical source of license information, reflected consistently in Packagist and registry metadata.
+
 ### Ambiguously specified
 
 #### Python Ecosystem — PyPI (pip)
@@ -48,6 +93,15 @@ This section groups ecosystems according to how license information can be speci
   - Copy-paste of license text blocks
   - Historical community conventions where classifiers in `setup.py` or metadata loosely indicated license type
 - The presence of multiple valid formats and lack of strict validation means license information can be ambiguous.
+
+#### Go Ecosystem — Go Modules
+- **Accepted definitions**:
+  - License files such as `LICENSE` located in the module root or subdirectories.
+  - License text recognized heuristically by tools such as [`licensecheck`](https://pkg.go.dev/golang.org/x/license) or [`go-licenses`](https://github.com/google/go-licenses), which identify known license patterns in source files.
+- Go’s module tooling (`go` CLI, proxies, and `go.mod`) does not provide a structured field for declaring licenses.
+- The `.mod` and `.info` files available via the [module proxy protocol](https://go.dev/ref/mod#goproxy-protocol) contain only module and version metadata, not license information.
+- The [`pkg.go.dev`](https://pkg.go.dev/license-policy) service detects license information heuristically using [`licensecheck`](https://pkg.go.dev/golang.org/x/license).
+- Because license detection depends on the presence and content of files rather than explicit declarations, license metadata in Go modules is ambiguous and not consistently machine-readable.
 
 ### Unspecified
 
@@ -81,6 +135,25 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Docker images do not embed license metadata. Any licensing information is external, typically shown in Docker Hub image descriptions or project documentation. Such information is not redistributed with the image itself, making it inaccessible for automated processing.
 - **Notes**: The lack of in-artifact metadata means license discovery depends entirely on community practices or external documentation.
 
+### Go Ecosystem — Go Modules
+- **Data type**: Text files containing license text, typically named `LICENSE`, or similar.
+- **License expression support**: Not supported. Go modules do not provide a field for SPDX identifiers or expressions in `go.mod` or related metadata.
+- **Location**: License files are distributed as part of the module source and included in the module zip file available through proxies (for example, `https://proxy.golang.org/<module>/@v/<version>.zip`).
+- The `.mod` file defines module dependencies but does not include licensing information. The `.info` file served by proxies contains version and timestamp metadata only, as defined in the [Go module proxy protocol](https://go.dev/ref/mod#goproxy-protocol).
+- **Notes**: License information must be derived from file scanning. Detection accuracy depends on file placement and adherence to standard license naming and text conventions.
+
+### JavaScript Ecosystem — npm
+- **Data type**: String containing an SPDX identifier, SPDX expression, or a `SEE LICENSE IN` file reference.
+- **License expression support**: SPDX identifiers and expressions are fully supported and documented in the npm specification.
+- **Location**: Declared in `package.json` under the `license` field. If `SEE LICENSE IN` is used, the referenced license file (typically `LICENSE` or `LICENSE.md`) is included in the published package tarball. Both the manifest and the license file are available from the npm registry and the downloaded package.
+- **Notes**: npm validates the license field format and issues warnings for invalid or non-SPDX values but does not block publication. The registry retains the license information as provided at publish time.
+
+### PHP Ecosystem — Composer (Packagist)
+- **Data type**: String containing an SPDX identifier or expression, an array of SPDX identifiers interpreted as an `OR` sequence, or the `proprietary` value used as an escape hatch for closed-source packages.
+- **License expression support**: Full support for SPDX identifiers and expressions using `and` and `or` operators, as defined in the Composer schema.
+- **Location**: Declared in `composer.json` under the `license` field. The manifest file is included in the distributed package and available through the Packagist registry and API.
+- **Notes**: Composer validates license values during package installation and publication using the `composer/spdx-licenses` library. Invalid or unrecognized values produce warnings but do not block distribution.
+
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
@@ -102,6 +175,24 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: None. The `docker inspect` command surfaces image metadata, but license information is not among the supported attributes.
 - **Registry access**: License details, if provided, appear only in free-text descriptions on Docker Hub or other registries.
 - **API access**: Docker Hub APIs can return image descriptions, but they do not include a structured license field.
+
+### Go Ecosystem — Go Modules
+- **Direct access**: License information is available in the source repository or within the module zip file downloaded from a module proxy. The license files can be read directly from these sources.
+- **CLI access**: The `go` command does not provide a subcommand or flag to print license metadata.
+- **Registry access**: The [`pkg.go.dev`](https://pkg.go.dev) website displays heuristically detected license information and marks modules as redistributable or non-redistributable based on recognized licenses.
+- **API access**: The [module proxy protocol](https://go.dev/ref/mod#goproxy-protocol) serves `.mod`, `.zip`, and `.info` files but does not include license data. Programmatic license retrieval requires downloading the module source and scanning for license files.
+
+### JavaScript Ecosystem — npm
+- **Direct access**: License information is available in the `package.json` file within the source code and in the published tarball retrieved from the registry.
+- **CLI access**: The `npm view <package> license` command displays the license field as published. Other npm commands, such as `npm info`, also expose this metadata locally.
+- **Registry access**: The npm website displays license information on each package page. The license value shown corresponds to the data in the published `package.json`.
+- **API access**: The npm registry JSON API provides the license field under each package version’s metadata. Both the manifest and license files can be retrieved programmatically (`curl https://registry.npmjs.org/<package-name>`).
+
+### PHP Ecosystem — Composer (Packagist)
+- **Direct access**: License information is available in the `composer.json` file within the package source. This file is included in distributed archives and mirrors.
+- **CLI access**: The `composer show <package>` command displays the license field for installed packages. It retrieves this information from the local `composer.lock` file or the package’s manifest.
+- **Registry access**: Packagist displays license information on package pages. The values shown correspond directly to the `license` field declared in the source manifest.
+- **API access**: The Packagist API exposes license information for each package version through its JSON endpoint, for example `https://repo.packagist.org/p/<vendor>/<package>.json`.
 
 ## 6. Quality Assessment
 
@@ -129,6 +220,30 @@ The quality of license metadata across ecosystems varies widely, not only in ter
   - Registries like Docker Hub sometimes display licensing information in free-text descriptions, but this is inconsistent and not machine-readable.
   - Without structured metadata, automated compliance tooling cannot reliably determine licensing status.
 
+### Go Ecosystem — Go Modules
+- **Coverage**: TBD
+- **Reliability**: Weak. When conventional license files are used and remain unmodified, detection tools produce consistent results. Variations in file naming or content reduce accuracy.
+- **Limitations**:
+  - No structured license field in `go.mod` or module metadata.
+  - License discovery depends entirely on file scanning and heuristic matching.
+  - The [`pkg.go.dev`](https://pkg.go.dev/license-policy) classification can differ from results produced by local scanners, as it is based on an internal allowlist and redistributability policy.
+  - No official `go` CLI command provides license information (see [cmd/go reference](https://pkg.go.dev/cmd/go)).
+
+### JavaScript Ecosystem — npm
+- **Coverage**: TBD
+- **Reliability**: Good. SPDX identifiers and expressions are widely adopted and validated during publication. Minor inconsistencies remain due to legacy packages using custom text or missing declarations. A secondary concern is that authors may bypass validation warnings and publish packages with nonstandard license values.
+- **Limitations**:
+  - The `license` field is not strictly enforced; non-SPDX values generate warnings but are still accepted.
+  - Some older packages may contain ambiguous or incomplete license data.
+  - License references using `SEE LICENSE IN` depend on the correctness and inclusion of the referenced file in the published package.
+
+  ### PHP Ecosystem — Composer (Packagist)
+- **Coverage**: TBD
+- **Reliability**: Good. SPDX identifiers/expressions are first-class in `composer.json`, arrays have clear `OR` semantics, and `proprietary` is an explicit escape hatch. Validation via `composer/spdx-licenses` helps, but publication is not blocked for invalid values.
+- **Limitations**:
+  - Non-SPDX expressions can be published despite warnings.
+  - Some older packages may omit the `license` field or use nonstandard strings.
+
 ## 7. Transformation Requirements
 
 To make license information usable across ecosystems, processes must account for the different formats and locations where licenses are declared. The goal is to produce validated SPDX expressions from heterogeneous sources.
@@ -154,3 +269,25 @@ To make license information usable across ecosystems, processes must account for
    - If found, scan the file with a license text identification tool to map it to SPDX.
    - Results will probably still be unreliable and incomplete, since no standard defines what the license of an image should represent.
 3. Normalize any extracted license names or text into SPDX identifiers, and validate using an SPDX expression parser.
+
+### Go Ecosystem — Go Modules
+1. Retrieve the module source or download the zip file from the module proxy.
+2. Identify license files at the module root or common subdirectories.
+3. Use a license scanner such as [`licensecheck`](https://pkg.go.dev/golang.org/x/license) or [`go-licenses`](https://github.com/google/go-licenses) to detect known license texts.
+4. Map detected results to SPDX identifiers where possible.
+5. Normalize multiple findings into an SPDX expression and validate with an SPDX parser.
+
+### JavaScript Ecosystem — npm
+1. Read the `license` field from `package.json`.
+   - If it contains a valid SPDX identifier or expression, parse and validate it directly. No further steps are required.
+   - If it uses the `SEE LICENSE IN` form, continue with the steps below.
+2. Extract the referenced license file from the published package tarball.
+3. Scan the file content with a license detection tool to map it to an SPDX identifier.
+4. Normalize the detected value into a validated SPDX expression.
+
+### PHP Ecosystem — Composer (Packagist)
+1. Read the `license` field from `composer.json`.
+   - If it contains a valid SPDX identifier or expression, parse and validate it directly. No further steps are required.
+   - If it contains the `proprietary` value, treat it as a closed-source package. The license terms must be obtained manually from the package’s website or vendor documentation, as no license file or metadata is expected in the code.
+2. If multiple identifiers are declared in an array, interpret them as an `OR` expression and normalize to a valid SPDX format.
+3. Validate the resulting SPDX expression using an SPDX parser.
