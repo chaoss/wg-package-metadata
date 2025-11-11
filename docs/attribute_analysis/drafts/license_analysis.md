@@ -68,6 +68,12 @@ While the POM.xml specification itself does not mandate license fields, Maven Ce
 - [NuGet .nuspec file reference — license element](https://learn.microsoft.com/en-us/nuget/reference/nuspec#license)
 - [NuGet license metadata deprecation announcement (2018)](https://github.com/NuGet/Announcements/issues/32)
 
+### Ruby Ecosystem — RubyGems
+**License Information Available**: RubyGems provides license metadata through the `license` and `licenses` attributes in the `.gemspec` file. The `license` attribute accepts a single license identifier (string), while the `licenses` attribute accepts an array of license identifiers for gems distributed under multiple licenses. RubyGems documentation recommends using SPDX identifiers (maximum 64 characters) for these fields to ensure standardization and clarity. However, these fields are optional, and RubyGems.org does not enforce SPDX format or validate the content of license declarations. The full license text is expected to be included as a file within the gem package.
+
+**References**:
+- [RubyGems Specification Reference — license/licenses attributes](https://guides.rubygems.org/specification-reference/#license=)
+
 ## 3. Field Analysis
 
 This section groups ecosystems according to how license information can be specified in their package metadata. The focus here is on whether the declaration is unambiguous, ambiguous, or not supported at all, along with the types of definitions that are accepted in practice.
@@ -110,6 +116,17 @@ This section groups ecosystems according to how license information can be speci
 - When SPDX expressions are used with `type="expression"`, the license declaration is unambiguous and machine-readable.
 
 ### Ambiguously specified
+
+#### Ruby Ecosystem — RubyGems
+- **Accepted definitions**:
+  - Single SPDX identifier in the `license` field (recommended but not enforced).
+  - Array of SPDX identifiers in the `licenses` field.
+  - Free-form text strings (any string up to 64 characters is accepted).
+  - Custom or non-standard license identifiers.
+- The `license` and `licenses` fields are optional, meaning gems can be published without any license information.
+- RubyGems.org does not validate whether the provided values are valid SPDX identifiers, allowing arbitrary strings to be used.
+- When multiple licenses are specified in the `licenses` array, there is no formal specification of whether they represent an OR relationship, AND relationship, or alternatives. This is left to convention and package documentation.
+- The lack of validation and optional nature of these fields means license information can be highly ambiguous, inconsistent, or completely absent.
 
 #### Java Ecosystem — Maven Central
 - **Accepted definitions**:
@@ -200,6 +217,12 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in the `.nuspec` file under the `<metadata>` section. The `.nuspec` file is included at the root of the `.nupkg` package (which is a ZIP archive). When `type="file"` is used, the referenced license file must also be included in the package. Both the `.nuspec` metadata and any included license files are available when the package is downloaded from NuGet.org or other NuGet feeds.
 - **Notes**: The `<license>` element is optional in the specification. NuGet.org validates SPDX expressions when `type="expression"` is used but does not enforce their presence. The transition from `<licenseUrl>` to `<license>` has improved the reliability of license metadata by embedding it within packages rather than relying on external URLs.
 
+### Ruby Ecosystem — RubyGems
+- **Data type**: The `.gemspec` file is a Ruby script (DSL - Domain Specific Language) that defines gem specifications. The `license` attribute accepts a single string value, while the `licenses` attribute accepts an array of strings. Each string can be an SPDX identifier (recommended), free-form text, or any custom string up to 64 characters.
+- **License expression support**: No native support for SPDX expressions. Only individual SPDX identifiers can be specified, either as a single value in `license` or as multiple values in the `licenses` array. Complex licensing scenarios (AND, WITH, exceptions) cannot be expressed using the built-in metadata fields.
+- **Location**: Declared in the `.gemspec` file, which is written in Ruby and located at the gem's root directory. When a gem is packaged and distributed, the `.gemspec` metadata is embedded within the `.gem` file (which is a tar archive). License files (typically named `LICENSE`, `LICENSE.txt`, or similar) are expected to be included in the gem package but this is not enforced. The metadata is extractable from the `.gem` file and is also served by RubyGems.org through its web interface and API.
+- **Notes**: The `license` and `licenses` fields are optional, and no validation is performed on their content. Because the `.gemspec` is a Ruby script, it must be executed to extract metadata, which can pose security considerations. The lack of enforced standards means license data quality varies significantly across gems.
+
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
@@ -251,6 +274,12 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: The `dotnet list package` command does not display license information. The `nuget.exe` tool does not provide a dedicated command for querying license metadata. However, the `.nuspec` file can be extracted from `.nupkg` files (which are ZIP archives) and parsed manually or with third-party tools.
 - **Registry access**: NuGet.org displays license information prominently on package pages. The displayed information is parsed from the `<license>` element in the package's `.nuspec` file. For packages using `type="expression"`, the SPDX expression is shown directly. For packages using `type="file"`, a link to view the license file is provided.
 - **API access**: The NuGet V3 API provides license metadata through the package metadata endpoint. License information can be accessed programmatically via `https://api.nuget.org/v3-flatcontainer/<package-id>/<version>/<package-id>.nuspec`. Additionally, the Search API returns license information in search results. The `.nupkg` package file can be downloaded and the `.nuspec` extracted for full license details.
+
+### Ruby Ecosystem — RubyGems
+- **Direct access**: License information is available in the `.gemspec` file within the gem's source code. The `.gemspec` metadata is also embedded within the `.gem` package file (tar archive) when distributed. License files are typically included in the gem package root directory but this is not enforced.
+- **CLI access**: The `gem specification <gem-name> license` command displays the license field value for installed gems. 
+- **Registry access**: RubyGems.org displays license information on each gem's page. The information shown is extracted from the `license` or `licenses` fields in the gem's metadata.
+- **API access**: The RubyGems API provides license metadata through multiple endpoints. The Gems API (`https://rubygems.org/api/v2/runygems/<gem-name>/versions/<version>.json`) returns gem metadata including the `licenses` field as an array. Individual gem version data can also be retrieved. The `.gem` file can be downloaded and the `.gemspec` extracted programmatically to access full metadata including license information.
 
 ## 6. Quality Assessment
 
@@ -340,6 +369,18 @@ To assess the practical quality and machine-readability of license metadata, we 
   - No enforcement mechanism to migrate legacy packages from `<licenseUrl>` to the modern `<license>` element, meaning both formats will coexist indefinitely.
   - Some older packages may have neither `<license>` nor `<licenseUrl>`, leaving license information completely unspecified.
 
+### Ruby Ecosystem — RubyGems
+- **Coverage**: TBD
+- **Reliability**: Weak to mixed. While SPDX identifiers are recommended for the `license` and `licenses` fields, there is no validation or enforcement. Gems can specify arbitrary strings, use non-standard license names, or omit license information entirely. The quality of license metadata depends entirely on individual gem maintainer diligence and awareness of best practices.
+- **Limitations**:
+  - The `license` and `licenses` fields are optional, allowing gems to be published without any license information.
+  - No validation of field content—any string up to 64 characters is accepted, including misspellings, custom abbreviations, or non-existent identifiers.
+  - No support for SPDX expressions; complex licensing scenarios (AND, WITH, exceptions) cannot be properly expressed.
+  - When multiple licenses are specified in the `licenses` array, there is no formal indication of their relationship (OR vs. AND), relying on convention and documentation.
+  - The `.gemspec` file must be executed as Ruby code to extract metadata, which can pose security concerns and complicates automated parsing.
+  - License files are expected but not enforced, meaning some gems may declare a license in metadata but not include the actual license text.
+  - Historical gems may have outdated, inconsistent, or completely missing license information with no migration path.
+
 ## 7. Transformation Requirements
 
 To make license information usable across ecosystems, processes must account for the different formats and locations where licenses are declared. The goal is to produce validated SPDX expressions from heterogeneous sources.
@@ -414,3 +455,21 @@ To make license information usable across ecosystems, processes must account for
    - Attempt to retrieve the license text from the URL (if still accessible).
    - Scan the retrieved text with a license detection tool to map it to an SPDX identifier.
    - If the URL is inaccessible, flag the license as unresolvable and retain the URL for manual review.
+6. Validate the resulting SPDX expression using an SPDX parser.
+
+### Ruby Ecosystem — RubyGems
+1. Retrieve the `.gemspec` file from the gem, either from the source repository, by downloading and extracting the `.gem` file (tar archive), or via the RubyGems API.
+2. Parse the `.gemspec` file to extract the `license` and/or `licenses` fields. Note that this may require executing Ruby code or using a Ruby parser, as `.gemspec` files are Ruby scripts.
+3. Check which field(s) are populated:
+   - If the `license` field (singular) is present, extract its string value.
+   - If the `licenses` field (plural array) is present, extract all string values from the array.
+   - If both are present, prefer the `licenses` array as it can represent multiple licenses.
+4. For each extracted license string:
+   - Attempt to match it to a known SPDX identifier using exact matching (case-insensitive).
+   - If exact matching fails, use fuzzy matching or a lookup table for common variations and misspellings (e.g., "apache 2.0" → `Apache-2.0`, "mit" → `MIT`).
+   - If the license string is already a valid SPDX identifier, use it directly.
+   - If matching fails, search for license files in the gem package (e.g., `LICENSE`, `LICENSE.txt`, `COPYING`) and scan them with a license text scanner (e.g., *scancode-toolkit*) to identify SPDX identifiers.
+   - If all approaches fail, flag the license as unresolvable and retain the original string for manual review.
+5. If multiple licenses are found (from the `licenses` array), combine them into an SPDX expression with `OR` operators, reflecting the common implicit convention that gems with multiple licenses allow use under any of them.
+6. If no license information is present in the `.gemspec`, flag the gem as having no declared license.
+7. Validate the resulting SPDX expression using an SPDX parser.
