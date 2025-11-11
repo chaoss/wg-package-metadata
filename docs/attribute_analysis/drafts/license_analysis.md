@@ -52,6 +52,15 @@ Composer validates license values against the SPDX list using the [`composer/spd
 - [composer/spdx-licenses validation library](https://github.com/composer/spdx-licenses)
 - [Packagist API reference](https://packagist.org/apidoc)
 
+### Java Ecosystem — Maven Central
+**License Information Available**: Maven provides a structured `<licenses>` section in the `pom.xml` file. Each `<license>` element can contain: `<name>` (full legal name of the license), `<url>` (official URL for the license text), `<distribution>` (how the project may be distributed: `repo` or `manual`), and `<comments>` (additional information about the license). The Maven POM reference documentation recommends setting the `<name>` field to an SPDX identifier, though this is not enforced. Multiple `<license>` elements can be defined within the `<licenses>` section, and by convention they are interpreted as an OR relationship (i.e., the software may be used under any of the listed licenses).
+
+While the POM.xml specification itself does not mandate license fields, Maven Central enforces additional publication requirements. To publish to Maven Central, the `<licenses>` section is required, and each `<license>` element must include both `<name>` and `<url>` fields. Maven Central does not validate whether the provided license information conforms to SPDX standards or any specific format beyond the presence of these required fields.
+
+**References**:
+- [Maven POM Reference — licenses section](https://maven.apache.org/pom.html)
+- [Maven Central publication requirements](https://central.sonatype.org/publish/requirements/#required-pom-metadata)
+
 ## 3. Field Analysis
 
 This section groups ecosystems according to how license information can be specified in their package metadata. The focus here is on whether the declaration is unambiguous, ambiguous, or not supported at all, along with the types of definitions that are accepted in practice.
@@ -86,10 +95,19 @@ This section groups ecosystems according to how license information can be speci
 
 ### Ambiguously specified
 
+#### Java Ecosystem — Maven Central
+- **Accepted definitions**:
+  - Free-form text for license names in the `<name>` field (SPDX identifiers are recommended but not enforced)
+  - URL to license text in the `<url>` field
+  - Multiple `<license>` elements, interpreted as an OR relationship by convention
+- Maven Central requires the presence of `<licenses>` section with `<name>` and `<url>` fields for publication, but does not validate the content or format of these fields.
+- The lack of SPDX enforcement and acceptance of arbitrary text for license names means license information can be ambiguous and inconsistent across packages.
+- The lack of support for SPDX expressions and only supporting OR relationships by convention (rather than formal specification) encourages some corner cases to be wrongly specified. For example, dual-licensing with AND conditions, exceptions (e.g., `Apache-2.0 WITH LLVM-exception`), or more complex license relationships cannot be properly expressed and may be incorrectly represented as simple OR alternatives or conflated into ambiguous text descriptions.
+
 #### Python Ecosystem — PyPI (pip)
 - **Accepted definitions**:
   - SPDX identifiers and expressions (supported in Python > 3.17)
-  - Free-form strings (e.g., “MIT License”, “BSD-style”)
+  - Free-form strings (e.g., "MIT License", "BSD-style")
   - Copy-paste of license text blocks
   - Historical community conventions where classifiers in `setup.py` or metadata loosely indicated license type
 - The presence of multiple valid formats and lack of strict validation means license information can be ambiguous.
@@ -154,6 +172,12 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in `composer.json` under the `license` field. The manifest file is included in the distributed package and available through the Packagist registry and API.
 - **Notes**: Composer validates license values during package installation and publication using the `composer/spdx-licenses` library. Invalid or unrecognized values produce warnings but do not block distribution.
 
+### Java Ecosystem — Maven Central
+- **Data type**: XML structure with a `<licenses>` container element that can hold multiple `<license>` elements. Each `<license>` element contains child elements for `<name>` (free-form text), `<url>` (URL string), `<distribution>` (enumerated value: `repo` or `manual`), and `<comments>` (free-form text).
+- **License expression support**: No support for SPDX expressions. The format only allows free-form text in the `<name>` field, with SPDX identifiers recommended but not enforced. Multiple licenses are supported through multiple `<license>` elements, which by convention represent an OR relationship, but this is not formally specified and cannot express AND, WITH, or other SPDX operators.
+- **Location**: Declared in `pom.xml` under the `<licenses>` section. The POM file is included in published artifacts (JAR, WAR, etc.) and is available from Maven Central and other Maven repositories. The POM is also distributed separately as a standalone artifact (`<artifactId>-<version>.pom`).
+- **Notes**: Maven Central enforces the presence of the `<licenses>` section with `<name>` and `<url>` fields but does not validate the content, format, or accuracy of the license information. The lack of structured validation means license data quality depends entirely on maintainer diligence.
+
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
@@ -190,9 +214,15 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 
 ### PHP Ecosystem — Composer (Packagist)
 - **Direct access**: License information is available in the `composer.json` file within the package source. This file is included in distributed archives and mirrors.
-- **CLI access**: The `composer show <package>` command displays the license field for installed packages. It retrieves this information from the local `composer.lock` file or the package’s manifest.
+- **CLI access**: The `composer show <package>` command displays the license field for installed packages. It retrieves this information from the local `composer.lock` file or the package's manifest.
 - **Registry access**: Packagist displays license information on package pages. The values shown correspond directly to the `license` field declared in the source manifest.
 - **API access**: The Packagist API exposes license information for each package version through its JSON endpoint, for example `https://repo.packagist.org/p/<vendor>/<package>.json`.
+
+### Java Ecosystem — Maven Central
+- **Direct access**: License information is available in the `pom.xml` file within the project source code. The POM file is also embedded within published artifacts (JAR, WAR, etc.) at `META-INF/maven/<groupId>/<artifactId>/pom.xml`, and is distributed as a separate `.pom` artifact alongside the main artifact.
+- **CLI access**: The `mvn dependency:tree -Dverbose` can be used to list resolved dependencies and combined with POM inspection, though Maven does not provide a dedicated command to display only license information.
+- **Registry access**: Maven Central's web interface at `https://central.sonatype.com` and legacy search at `https://search.maven.org` display license information on package pages, parsed from the POM metadata.
+- **API access**: POM files can be retrieved directly from Maven Central using the repository URL pattern `https://repo1.maven.org/maven2/<groupId-as-path>/<artifactId>/<version>/<artifactId>-<version>.pom`. Maven Central also provides a REST API for searching artifacts, though license-specific queries are limited. Third-party services like MVNRepository (`https://mvnrepository.com`) provide additional search and API capabilities for license information.
 
 ## 6. Quality Assessment
 
@@ -261,6 +291,17 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Non-SPDX expressions can be published despite warnings.
   - Some older packages may omit the `license` field or use nonstandard strings, though this is rare in practice.
 
+### Java Ecosystem — Maven Central
+- **Coverage**: TBD
+- **Reliability**: Weak to mixed. While Maven Central requires the `<licenses>` section for publication, the lack of content validation results in highly inconsistent license data. Free-form text in the `<name>` field leads to variations like "Apache License 2.0", "Apache 2.0", "Apache-2.0", "ASL 2.0", and other permutations for the same license. Although SPDX identifiers are recommended, many packages use descriptive names, URLs, or informal abbreviations instead.
+- **Limitations**:
+  - No validation of license content or format—Maven Central only checks for the presence of required fields.
+  - No support for SPDX expressions; complex licensing scenarios (AND, WITH, exceptions) cannot be properly expressed.
+  - Multiple licenses are interpreted as OR by convention only, with no formal specification or machine-readable indication of the relationship.
+  - License data quality is entirely dependent on individual maintainer diligence and awareness of best practices.
+  - Historical packages may contain outdated license URLs, broken links, or references to deprecated license versions.
+  - The `<url>` field is required but not validated, leading to inconsistent or non-existent URLs that cannot be reliably used for automated license text retrieval.
+
 ## 7. Transformation Requirements
 
 To make license information usable across ecosystems, processes must account for the different formats and locations where licenses are declared. The goal is to produce validated SPDX expressions from heterogeneous sources.
@@ -305,6 +346,17 @@ To make license information usable across ecosystems, processes must account for
 ### PHP Ecosystem — Composer (Packagist)
 1. Read the `license` field from `composer.json`.
    - If it contains a valid SPDX identifier or expression, parse and validate it directly. No further steps are required.
-   - If it contains the `proprietary` value, treat it as a closed-source package. The license terms must be obtained manually from the package’s website or vendor documentation, as no license file or metadata is expected in the code.
+   - If it contains the `proprietary` value, treat it as a closed-source package. The license terms must be obtained manually from the package's website or vendor documentation, as no license file or metadata is expected in the code.
 2. If multiple identifiers are declared in an array, interpret them as an `OR` expression and normalize to a valid SPDX format.
 3. Validate the resulting SPDX expression using an SPDX parser.
+
+### Java Ecosystem — Maven Central
+1. Retrieve the POM file from the artifact, either from the source repository, from within the published artifact at `META-INF/maven/<groupId>/<artifactId>/pom.xml`, or directly from Maven Central using the repository URL pattern.
+2. Parse the XML and extract all `<license>` elements within the `<licenses>` section.
+3. For each `<license>` element, extract the `<name>` field content.
+   - Attempt to match the license name to a known SPDX identifier using fuzzy matching or a lookup table of common variations (e.g., "Apache License 2.0" → `Apache-2.0`, "MIT License" → `MIT`).
+   - If the `<name>` field is already an SPDX identifier, use it directly.
+   - If fuzzy matching fails, use the `<url>` field (if present and valid) to retrieve the license text and apply a license text scanner (e.g., *scancode-toolkit*) to identify the SPDX identifier.
+   - If both approaches fail, flag the license as unresolvable and retain the original free-form text for manual review.
+4. If multiple `<license>` elements are present, combine them into an SPDX expression with `OR` operators, reflecting the conventional interpretation that the software may be used under any of the listed licenses.
+5. Validate the resulting SPDX expression using an SPDX parser.
