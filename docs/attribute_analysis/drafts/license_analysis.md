@@ -93,6 +93,19 @@ License identifiers must be selected from a fixed list of predefined short names
 **Reference**:
 - [CPAN::Meta::Spec — License field specification](https://metacpan.org/pod/CPAN::Meta::Spec)
 
+### Python Ecosystem — Conda
+**License Information Available**: Conda provides multiple fields for license information within the `about` section of the `meta.yaml` file used to build conda packages:
+
+- `license`: A free-form text string that specifies the license name. Accepts any string value without format enforcement or validation.
+- `license_family`: Categorizes the license type. While there is no official exhaustive list, common values used by convention include `Apache`, `BSD`, `GPL`, `LGPL`, `MIT`, `Proprietary`, `Public Domain`, and `Other`.
+- `license_file`: Specifies the path to a license text file to be included in the package.
+- `license_url`: Provides a URL pointing to the license text.
+
+All of these fields are optional in the specification. The combination of free-form text in `license`, optional categorization via `license_family`, and the ability to reference license content through either `license_file` or `license_url` provides flexibility but does not ensure consistency or machine-readability across packages.
+
+**Reference**:
+- [Conda Build — Define Metadata (meta.yaml)](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html)
+
 ## 3. Field Analysis
 
 This section groups ecosystems according to how license information can be specified in their package metadata. The focus here is on whether the declaration is unambiguous, ambiguous, or not supported at all, along with the types of definitions that are accepted in practice.
@@ -188,6 +201,18 @@ This section groups ecosystems according to how license information can be speci
   - Historical community conventions where classifiers in `setup.py` or metadata loosely indicated license type
 - The presence of multiple valid formats and lack of strict validation means license information can be ambiguous.
 
+#### Python Ecosystem — Conda
+- **Accepted definitions**:
+  - Free-form text string in the `license` field (any string value accepted without validation)
+  - Conventional categorization via `license_family` field (e.g., `MIT`, `BSD`, `GPL`, `Apache`, `Proprietary`, `Public Domain`, `Other`)
+  - Reference to license file via `license_file` field
+  - URL to license text via `license_url` field
+- All license-related fields are optional in the `meta.yaml` specification, meaning packages can be published without any license information.
+- The `license` field accepts arbitrary text without format enforcement or validation against SPDX identifiers.
+- The `license_family` field has no official exhaustive list, it accepts any text, with common values used only by convention.
+- There is no support for expressing complex license relationships (AND, OR, WITH) through structured syntax or SPDX expressions.
+- The combination of optional fields, free-form text, and lack of validation means license information can be highly ambiguous, inconsistent, or completely absent across conda packages.
+
 #### Go Ecosystem — Go Modules
 - **Accepted definitions**:
   - License files such as `LICENSE` located in the module root or subdirectories.
@@ -278,6 +303,12 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in `META.json` (preferred) or `META.yml` files located at the distribution root. These metadata files are generated during the build process (by `ExtUtils::MakeMaker`, `Module::Build`, or other build tools) and included in the distribution tarball uploaded to CPAN. The metadata is extracted by CPAN indexers and made available through MetaCPAN and other CPAN search interfaces. Individual distribution tarballs can be downloaded and the META files extracted directly.
 - **Notes**: The `license` field is mandatory in the CPAN::Meta::Spec version 2. The use of a fixed predefined list rather than SPDX identifiers means translation is required for cross-ecosystem compatibility. The four special values (`open_source`, `restricted`, `unrestricted`, `unknown`) provide escape hatches but sacrifice specificity and machine-readability.
 
+### Python Ecosystem — Conda
+- **Data type**: YAML format in `meta.yaml` files used to build conda packages. The `about` section contains four optional license-related fields: `license` (free-form text string), `license_family` (free-form text string for categorization), `license_file` (string specifying path to a license file), and `license_url` (string specifying a URL to license text).
+- **License expression support**: No support for SPDX expressions or structured complex licensing scenarios. The `license` field accepts arbitrary text without validation. There is no way to express AND, OR, or WITH relationships through structured syntax.
+- **Location**: Declared in `meta.yaml` files located at the root of conda recipe directories. These recipe files are used during the build process to create conda packages (`.tar.bz2` or `.conda` archives). The resulting package metadata is indexed and made available through Anaconda.org, conda-forge, and other conda channels. When a package is installed, metadata is stored locally but the original `meta.yaml` is not typically included in the installed package itself—it remains in the recipe repository.
+- **Notes**: All license-related fields are optional in the conda-build specification, meaning packages can be built and published without any license information. The free-form nature of both `license` and `license_family` fields, combined with lack of validation, means license information varies widely in format and quality across conda packages. The `license_file` and `license_url` fields provide alternative ways to reference license content but do not improve machine-readability of the license terms themselves.
+
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
@@ -347,6 +378,12 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: CPAN clients such as `cpan` and `cpanm` can access license metadata, though they do not provide dedicated commands to display only license information. Tools like `cpan-outdated` or custom scripts using `CPAN::Meta` can programmatically extract license data from installed or available distributions.
 - **Registry access**: MetaCPAN (https://metacpan.org) displays license information prominently on each distribution's page. The license data is extracted from the `META.json` or `META.yml` files and presented in a human-readable format. The interface shows both the license identifiers and provides links to license details.
 - **API access**: MetaCPAN provides a comprehensive REST API (https://fastapi.metacpan.org) that exposes license metadata. Distribution information can be retrieved programmatically, including the license array. For example, `https://fastapi.metacpan.org/v1/release/<distribution>` returns JSON including the license field. The `META.json` or `META.yml` files can also be downloaded directly from CPAN mirrors.
+
+### Python Ecosystem — Conda
+- **Direct access**: License information is available in `meta.yaml` files within conda recipe directories (e.g., on GitHub for conda-forge recipes). The original `meta.yaml` files are not included in installed packages, but metadata extracted from them is stored in the installed package's `info` directory as JSON files.
+- **CLI access**: The `conda search <package> --info` command displays package metadata including license information for packages available in configured channels. The `conda list --show-channel-urls` command shows installed packages but does not display license information directly. For installed packages, license metadata can be read from JSON files in the conda environment's `conda-meta/` directory (e.g., `<env>/conda-meta/<package>-<version>-<build>.json`).
+- **Registry access**: Anaconda.org displays license information on package pages when provided by package maintainers. The conda-forge website and individual package pages also show license information extracted from package metadata. However, the display format and availability depend on whether maintainers populated the license fields in their recipes.
+- **API access**: Anaconda.org provides an API for querying package metadata, accessible at endpoints like `https://api.anaconda.org/package/<channel>/<package>`. The API returns JSON including license information when available. The conda channels serve package metadata as JSON through repodata files (e.g., `https://conda.anaconda.org/<channel>/<platform>/repodata.json`), which include license information for packages in that channel. Individual package metadata can also be extracted from downloaded package archives.
 
 ## 6. Quality Assessment
 
@@ -470,6 +507,21 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Older distributions using CPAN::Meta::Spec version 1 may have inconsistent or missing license information.
   - The predefined list may not include newer licenses or license versions, forcing use of the ambiguous `open_source` special value.
   - Build tools must correctly generate META files from distribution metadata; errors in this process can result in incorrect license information.
+
+### Python Ecosystem — Conda
+- **Coverage**: TBD
+- **Reliability**: Weak. All license-related fields in `meta.yaml` are optional, meaning conda packages can be built and published without any license information. The `license` field accepts arbitrary free-form text without validation, leading to highly inconsistent license declarations across packages. Package maintainers may use SPDX identifiers, descriptive names, abbreviations, URLs, or any other text. The `license_family` field provides broad categorization but follows no official standard and accepts any text value, with common values used only by convention.
+- **Limitations**:
+  - All license-related fields (`license`, `license_family`, `license_file`, `license_url`) are optional, allowing packages to be published without any license metadata.
+  - No validation of the `license` field, any string value is accepted, including misspellings, non-standard names, custom abbreviations, or even arbitrary text.
+  - No support for SPDX expressions; complex licensing scenarios (AND, OR, WITH, exceptions) cannot be properly expressed through structured metadata.
+  - The `license_family` field has no official specification or predefined list, relying entirely on community convention with no enforcement or consistency checks.
+  - No mechanism to ensure that `license_file` references actually exist or contain valid license text in the built package.
+  - The `license_url` field points to external URLs that may become stale, change, or become inaccessible over time, similar to deprecated approaches in other ecosystems.
+  - License metadata quality varies dramatically between official channels (like defaults, conda-forge) and third-party channels, with no central validation or quality standards.
+  - The `meta.yaml` file is not included in distributed packages, only derived metadata, making it difficult to trace the original license declaration or verify its accuracy.
+  - Historical packages may have completely missing, inconsistent, or ambiguous license information with no migration path or enforcement of standards.
+  - Recipe maintainers may inconsistently populate fields—for example, using only `license` without `license_family`, or vice versa, or using `license_url` instead of including license text directly.
 
 ## 7. Transformation Requirements
 
@@ -599,3 +651,29 @@ To make license information usable across ecosystems, processes must account for
 5. If any special values were encountered, document the ambiguity and include the need for manual review or additional license file scanning.
 6. Validate the resulting SPDX expression using an SPDX parser.
 7. Note that CPAN distributions may also include LICENSE or COPYING files that should be checked to confirm or supplement the metadata, especially when special values are used.
+
+### Python Ecosystem — Conda
+1. Retrieve package metadata from the conda channel (e.g., via `conda search <package> --info`, from the channel's `repodata.json`, via the Anaconda.org API, or from the installed package's JSON metadata in `conda-meta/`).
+2. Extract the `license` field from the metadata if present. If not present, proceed to step 4.
+3. Process the `license` field content:
+   - If it contains a recognizable SPDX identifier, validate it directly using an SPDX expression parser.
+   - If it contains free-form text (e.g., "MIT License", "Apache 2.0", "BSD-style"), attempt to normalize common variations and map to SPDX identifiers using fuzzy matching or a lookup table.
+   - If it contains multiple comma-separated or slash-separated license names (e.g., "MIT/BSD", "Apache-2.0 or MIT"), parse them and create an SPDX expression with `OR` operators.
+   - If it contains a URL, proceed to step 6 to fetch and scan the license text.
+   - If it contains arbitrary descriptive text that cannot be mapped, flag it for manual review and proceed to alternative extraction methods.
+4. Check the `license_file` field if present:
+   - Retrieve the conda package archive (`.tar.bz2` or `.conda` file) from the channel.
+   - Extract the package contents and locate the file specified by `license_file`.
+   - Apply a license text scanner (e.g., *scancode-toolkit*) to identify the most likely SPDX identifier(s).
+   - Convert the scanning result into a valid SPDX expression.
+5. Check the `license_url` field if present:
+   - Attempt to retrieve the license text from the URL (if still accessible).
+   - Scan the retrieved text with a license detection tool to map it to an SPDX identifier.
+   - If the URL is inaccessible, broken, or returns non-license content, flag for manual review.
+6. Use the `license_family` field as a supplementary hint (if present):
+   - If no usable license information was extracted from previous steps, use `license_family` as a broad category indicator (e.g., `MIT` family → `MIT`, `Apache` → potentially `Apache-2.0`, `GPL` → requires version information).
+   - Note that `license_family` is too imprecise for definitive SPDX mapping and should only be used as a last resort with appropriate caveats.
+7. If all extraction attempts fail or no license fields are populated:
+   - Search the package contents for common license files (`LICENSE`, `LICENSE.txt`, `COPYING`, `COPYING.txt`, etc.) and scan them with a license text scanner.
+   - If no license information can be found, flag the package as having no declared or detectable license information.
+8. Validate the resulting SPDX expression using an SPDX parser.
