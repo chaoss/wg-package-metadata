@@ -74,6 +74,17 @@ While the POM.xml specification itself does not mandate license fields, Maven Ce
 **References**:
 - [RubyGems Specification Reference — license/licenses attributes](https://guides.rubygems.org/specification-reference/#license=)
 
+### macOS Ecosystem — Homebrew
+**License Information Available**: Homebrew provides a `license` method in Formula files (Ruby DSL) to declare package licensing information. The method accepts SPDX identifiers as strings (e.g., `"MIT"`, `"Apache-2.0"`), with support for version operators (e.g., `"EPL-1.0+"` for "or later" versions). Special symbols include `:public_domain` for public domain software and `:cannot_represent` for licenses that cannot be expressed using SPDX.
+
+Complex SPDX license expressions are represented using Ruby hash structures based on the SPDX License Expression Guidelines: `any_of:` for OR relationships, `all_of:` for AND relationships, and the hash syntax `"License" => { with: "Exception" }` for SPDX WITH operators (license exceptions). These structures can be arbitrarily nested to express complex licensing scenarios.
+
+Homebrew/homebrew-core (the main tap) does not accept new formulae without a license. All licenses must use identifiers from the SPDX License List or be marked as `:public_domain` or `:cannot_represent`. Only formulae using Debian Free Software Guidelines (DFSG) licenses or released into the public domain are accepted into homebrew-core.
+
+**References**:
+- [Homebrew Formula Cookbook](https://docs.brew.sh/Formula-Cookbook)
+- [Homebrew License Guidelines](https://docs.brew.sh/License-Guidelines)
+
 ## 3. Field Analysis
 
 This section groups ecosystems according to how license information can be specified in their package metadata. The focus here is on whether the declaration is unambiguous, ambiguous, or not supported at all, along with the types of definitions that are accepted in practice.
@@ -114,6 +125,17 @@ This section groups ecosystems according to how license information can be speci
 - The `<license>` element is optional, meaning some packages may omit license information entirely.
 - Ambiguity primarily arises from legacy packages that still use the deprecated `<licenseUrl>` element or packages that omit the `<license>` element altogether.
 - When SPDX expressions are used with `type="expression"`, the license declaration is unambiguous and machine-readable.
+
+#### macOS Ecosystem — Homebrew
+- **Accepted definitions**:
+  - SPDX identifiers as Ruby symbols (e.g., `:MIT`, `:Apache_2_0`, `:GPL_3_0_only`).
+  - SPDX identifiers as strings (e.g., `"MIT"`, `"Apache-2.0"`).
+  - Array of SPDX identifiers for multiple licenses.
+  - Structured hash with `:any_of` key for OR relationships (e.g., `{ any_of: [:MIT, :Apache_2_0] }`).
+  - Structured hash with `:all_of` key for AND relationships (e.g., `{ all_of: [:MIT, :Apache_2_0] }`).
+- The `license` field is recommended but not strictly enforced, meaning some formulae may omit license information.
+- The use of Ruby symbol notation and structured hashes provides clear, machine-readable representations of licensing including complex scenarios.
+- Homebrew's approach explicitly supports SPDX identifiers and provides native structures for expressing AND/OR relationships without relying on SPDX expression syntax strings.
 
 ### Ambiguously specified
 
@@ -223,6 +245,12 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in the `.gemspec` file, which is written in Ruby and located at the gem's root directory. When a gem is packaged and distributed, the `.gemspec` metadata is embedded within the `.gem` file (which is a tar archive). License files (typically named `LICENSE`, `LICENSE.txt`, or similar) are expected to be included in the gem package but this is not enforced. The metadata is extractable from the `.gem` file and is also served by RubyGems.org through its web interface and API.
 - **Notes**: The `license` and `licenses` fields are optional, and no validation is performed on their content. Because the `.gemspec` is a Ruby script, it must be executed to extract metadata, which can pose security considerations. The lack of enforced standards means license data quality varies significantly across gems.
 
+### macOS Ecosystem — Homebrew
+- **Data type**: Formula files are Ruby scripts (DSL) that define package specifications. The `license` method accepts: SPDX identifier strings (e.g., `"MIT"`, `"Apache-2.0"`), special symbols (`:public_domain`, `:cannot_represent`), arrays for multiple licenses, hashes with `any_of:` or `all_of:` keys for complex expressions, and hash syntax for license exceptions (`"License" => { with: "Exception" }`).
+- **License expression support**: Full native support for SPDX license expressions through structured Ruby data types based on the SPDX License Expression Guidelines. The `any_of:` hash key represents OR relationships, `all_of:` represents AND relationships, and the hash syntax `"License" => { with: "Exception" }` represents SPDX WITH operators for license exceptions (e.g., `"Apache-2.0" => { with: "LLVM-exception" }`). These structures can be arbitrarily nested to express any valid SPDX license expression. Version operators (`+`, `-only`, `-or-later`) are supported directly in license identifier strings.
+- **Location**: Declared in Formula files (`.rb` Ruby scripts) located in Homebrew's formula repositories (homebrew-core, homebrew-cask, and third-party taps). The formula metadata is not embedded in installed packages but is maintained in Git repositories. Homebrew's API and web interface (formulae.brew.sh) serve this metadata. License information is stored in Homebrew's formula repositories and synced to the local system when formulae are updated.
+- **Notes**: The `license` field is required for new formulae in homebrew-core. Formula files must be executed as Ruby code to extract metadata. Homebrew uses standard SPDX identifiers in string format, not Ruby symbol notation.
+
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
@@ -280,6 +308,12 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: The `gem specification <gem-name> license` command displays the license field value for installed gems. 
 - **Registry access**: RubyGems.org displays license information on each gem's page. The information shown is extracted from the `license` or `licenses` fields in the gem's metadata.
 - **API access**: The RubyGems API provides license metadata through multiple endpoints. The Gems API (`https://rubygems.org/api/v2/runygems/<gem-name>/versions/<version>.json`) returns gem metadata including the `licenses` field as an array. Individual gem version data can also be retrieved. The `.gem` file can be downloaded and the `.gemspec` extracted programmatically to access full metadata including license information.
+
+### macOS Ecosystem — Homebrew
+- **Direct access**: License information is available in Formula files (`.rb` Ruby scripts) stored in Homebrew's formula repositories on GitHub (e.g., homebrew-core, homebrew-cask). These repositories can be cloned or browsed directly. The formula files are also synced locally when running `brew update`.
+- **CLI access**: The `brew info <formula>` command displays license information along with other formula metadata. The output shows the license value as declared in the formula file. Additionally, `brew info --json=v2 <formula>` provides JSON output including license information for programmatic access.
+- **Registry access**: The formulae.brew.sh website displays license information for each formula. The license is parsed from the formula's `license` attribute and displayed on the formula's page along with other metadata.
+- **API access**: Homebrew provides a JSON API at `https://formulae.brew.sh/api/formula/<formula>.json` that includes license metadata. The API returns structured data including the license field. Formula files can also be accessed directly from GitHub repositories for detailed inspection.
 
 ## 6. Quality Assessment
 
@@ -381,6 +415,17 @@ To assess the practical quality and machine-readability of license metadata, we 
   - License files are expected but not enforced, meaning some gems may declare a license in metadata but not include the actual license text.
   - Historical gems may have outdated, inconsistent, or completely missing license information with no migration path.
 
+### macOS Ecosystem — Homebrew
+- **Coverage**: TBD
+- **Reliability**: Strong. Homebrew formulae maintained in official taps (homebrew-core, homebrew-cask) generally have consistent and accurate license information. The use of Ruby symbols for SPDX identifiers provides compile-time checking and reduces typos. The structured hash format with `:any_of` and `:all_of` keys makes complex licensing relationships explicit and machine-readable.
+- **Limitations**:
+  - The `license` field is recommended but optional, meaning some formulae may omit license information, particularly in third-party taps.
+  - Homebrew uses its own Ruby symbol notation for SPDX identifiers (`:Apache_2_0` instead of `Apache-2.0`), requiring translation to standard SPDX format for cross-ecosystem compatibility.
+  - Formula files must be executed as Ruby code to extract metadata, which requires a Ruby interpreter and poses potential security considerations.
+  - License information is maintained separately from installed packages in formula repositories, meaning it can become out of sync if formulae are updated without updating installed software.
+  - Third-party taps may have inconsistent or missing license information compared to official Homebrew repositories.
+  - Historical formulae may lack license information or use deprecated license identifier formats.
+
 ## 7. Transformation Requirements
 
 To make license information usable across ecosystems, processes must account for the different formats and locations where licenses are declared. The goal is to produce validated SPDX expressions from heterogeneous sources.
@@ -472,4 +517,25 @@ To make license information usable across ecosystems, processes must account for
    - If all approaches fail, flag the license as unresolvable and retain the original string for manual review.
 5. If multiple licenses are found (from the `licenses` array), combine them into an SPDX expression with `OR` operators, reflecting the common implicit convention that gems with multiple licenses allow use under any of them.
 6. If no license information is present in the `.gemspec`, flag the gem as having no declared license.
+7. Validate the resulting SPDX expression using an SPDX parser.
+
+### macOS Ecosystem — Homebrew
+1. Retrieve the Formula file from Homebrew's repositories, either by accessing the local formula repository (synced via `brew update`), from GitHub (e.g., `https://github.com/Homebrew/homebrew-core`), or via Homebrew's JSON API.
+2. Parse the Formula file (Ruby script) to extract the `license` value. This requires either executing Ruby code or using a Ruby parser to extract the value.
+3. Determine the format of the `license` value:
+   - If it's a special symbol (`:public_domain` or `:cannot_represent`), handle accordingly.
+   - If it's a string, check if it's a valid SPDX identifier (potentially with version operators like `+`, `-only`, or `-or-later`). Convert to standard SPDX format if needed.
+   - If it's a hash with a string key and a `with:` value (e.g., `"Apache-2.0" => { with: "LLVM-exception" }`), convert to SPDX WITH syntax: `Apache-2.0 WITH LLVM-exception`.
+   - If it's an array, continue to step 4.
+   - If it's a hash with `any_of:` or `all_of:` keys, continue to step 5.
+4. If the license is an array:
+   - Process each element recursively using step 3 (handling strings, symbols, nested hashes with `with:`, etc.).
+   - Combine the resulting SPDX expressions with `OR` operators.
+5. If the license is a structured hash with `any_of:` or `all_of:`:
+   - If the hash contains an `any_of:` key, extract the array value and process each element recursively using step 3.
+   - Combine the results with `OR` operators.
+   - If the hash contains an `all_of:` key, extract the array value and process each element recursively using step 3.
+   - Combine the results with `AND` operators.
+   - Handle arbitrarily nested structures (arrays within hashes, hashes within arrays, license exceptions within complex expressions) by applying these rules recursively.
+6. If no license information is present in the Formula, flag the package as having no declared license.
 7. Validate the resulting SPDX expression using an SPDX parser.
