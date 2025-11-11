@@ -85,6 +85,14 @@ Homebrew/homebrew-core (the main tap) does not accept new formulae without a lic
 - [Homebrew Formula Cookbook](https://docs.brew.sh/Formula-Cookbook)
 - [Homebrew License Guidelines](https://docs.brew.sh/License-Guidelines)
 
+### Perl Ecosystem — CPAN
+**License Information Available**: CPAN (Comprehensive Perl Archive Network) provides a `license` field in the distribution metadata, defined in `META.json` or `META.yml` files following the CPAN::Meta::Spec specification. The `license` field is **mandatory** and must be an array containing at least one element.
+
+License identifiers must be selected from a fixed list of predefined short names for common open source licenses (e.g., `perl_5`, `apache_2_0`, `mit`, `gpl_3`, `artistic_2`). The specification defines four special values for edge cases: `open_source` (for OSI-approved licenses not in the predefined list), `restricted` (for non-free/proprietary licenses), `unrestricted` (for public domain or similar), and `unknown` (when the license cannot be determined). Multiple licenses in the array indicate the distribution may be used under any of those licenses (OR relationship).
+
+**Reference**:
+- [CPAN::Meta::Spec — License field specification](https://metacpan.org/pod/CPAN::Meta::Spec)
+
 ## 3. Field Analysis
 
 This section groups ecosystems according to how license information can be specified in their package metadata. The focus here is on whether the declaration is unambiguous, ambiguous, or not supported at all, along with the types of definitions that are accepted in practice.
@@ -138,6 +146,19 @@ This section groups ecosystems according to how license information can be speci
 - Homebrew's approach explicitly supports SPDX identifiers and provides native structures for expressing AND/OR relationships without relying on SPDX expression syntax strings.
 
 ### Ambiguously specified
+
+#### Perl Ecosystem — CPAN
+- **Accepted definitions**:
+  - License identifiers from a fixed predefined list of common open source licenses (e.g., `perl_5`, `apache_2_0`, `mit`, `gpl_3`, `artistic_2`, `bsd`, `lgpl_3_0`, etc.).
+  - Four special values that introduce ambiguity:
+    - `open_source`: Indicates an OSI-approved license not in the predefined list, but doesn't specify which one.
+    - `restricted`: Indicates a non-free or proprietary license, without specifying the actual terms.
+    - `unrestricted`: Indicates public domain or similar, without precise legal characterization.
+    - `unknown`: Explicitly indicates the license cannot be determined.
+  - The `license` field is mandatory and must be an array with at least one element.
+  - Multiple licenses in the array represent an OR relationship (the distribution may be used under any of the listed licenses).
+  - While the predefined list provides clear identifiers for common licenses, the four special values introduce significant ambiguity. Distributions using `open_source`, `restricted`, `unrestricted`, or `unknown` do not provide machine-readable or legally precise license information.
+  - The fixed list does not correspond to SPDX identifiers, requiring translation for cross-ecosystem compatibility.
 
 #### Ruby Ecosystem — RubyGems
 - **Accepted definitions**:
@@ -251,6 +272,12 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in Formula files (`.rb` Ruby scripts) located in Homebrew's formula repositories (homebrew-core, homebrew-cask, and third-party taps). The formula metadata is not embedded in installed packages but is maintained in Git repositories. Homebrew's API and web interface (formulae.brew.sh) serve this metadata. License information is stored in Homebrew's formula repositories and synced to the local system when formulae are updated.
 - **Notes**: The `license` field is required for new formulae in homebrew-core. Formula files must be executed as Ruby code to extract metadata. Homebrew uses standard SPDX identifiers in string format, not Ruby symbol notation.
 
+### Perl Ecosystem — CPAN
+- **Data type**: JSON or YAML format in `META.json` or `META.yml` files following the CPAN::Meta::Spec. The `license` field is a mandatory array of strings, where each string must be a license identifier from the predefined list or one of the four special values (`open_source`, `restricted`, `unrestricted`, `unknown`).
+- **License expression support**: No support for SPDX expressions or complex licensing scenarios. The array format only supports listing multiple licenses that represent an OR relationship. There is no way to express AND relationships, WITH operators for license exceptions, or other SPDX expression constructs. The predefined license identifiers use underscore notation (e.g., `apache_2_0`, `gpl_3`) rather than SPDX standard identifiers.
+- **Location**: Declared in `META.json` (preferred) or `META.yml` files located at the distribution root. These metadata files are generated during the build process (by `ExtUtils::MakeMaker`, `Module::Build`, or other build tools) and included in the distribution tarball uploaded to CPAN. The metadata is extracted by CPAN indexers and made available through MetaCPAN and other CPAN search interfaces. Individual distribution tarballs can be downloaded and the META files extracted directly.
+- **Notes**: The `license` field is mandatory in the CPAN::Meta::Spec version 2. The use of a fixed predefined list rather than SPDX identifiers means translation is required for cross-ecosystem compatibility. The four special values (`open_source`, `restricted`, `unrestricted`, `unknown`) provide escape hatches but sacrifice specificity and machine-readability.
+
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
@@ -314,6 +341,12 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: The `brew info <formula>` command displays license information along with other formula metadata. The output shows the license value as declared in the formula file. Additionally, `brew info --json=v2 <formula>` provides JSON output including license information for programmatic access.
 - **Registry access**: The formulae.brew.sh website displays license information for each formula. The license is parsed from the formula's `license` attribute and displayed on the formula's page along with other metadata.
 - **API access**: Homebrew provides a JSON API at `https://formulae.brew.sh/api/formula/<formula>.json` that includes license metadata. The API returns structured data including the license field. Formula files can also be accessed directly from GitHub repositories for detailed inspection.
+
+### Perl Ecosystem — CPAN
+- **Direct access**: License information is available in `META.json` or `META.yml` files within the distribution source or the distributed tarball. These files are located at the root of the distribution and can be read directly from the downloaded tarball or from the source repository.
+- **CLI access**: CPAN clients such as `cpan` and `cpanm` can access license metadata, though they do not provide dedicated commands to display only license information. Tools like `cpan-outdated` or custom scripts using `CPAN::Meta` can programmatically extract license data from installed or available distributions.
+- **Registry access**: MetaCPAN (https://metacpan.org) displays license information prominently on each distribution's page. The license data is extracted from the `META.json` or `META.yml` files and presented in a human-readable format. The interface shows both the license identifiers and provides links to license details.
+- **API access**: MetaCPAN provides a comprehensive REST API (https://fastapi.metacpan.org) that exposes license metadata. Distribution information can be retrieved programmatically, including the license array. For example, `https://fastapi.metacpan.org/v1/release/<distribution>` returns JSON including the license field. The `META.json` or `META.yml` files can also be downloaded directly from CPAN mirrors.
 
 ## 6. Quality Assessment
 
@@ -425,6 +458,18 @@ To assess the practical quality and machine-readability of license metadata, we 
   - License information is maintained separately from installed packages in formula repositories, meaning it can become out of sync if formulae are updated without updating installed software.
   - Third-party taps may have inconsistent or missing license information compared to official Homebrew repositories.
   - Historical formulae may lack license information or use deprecated license identifier formats.
+
+### Perl Ecosystem — CPAN
+- **Coverage**: TBD
+- **Reliability**: Mixed. The mandatory nature of the `license` field in CPAN::Meta::Spec version 2 ensures that all modern distributions include license metadata. However, the four special values (`open_source`, `restricted`, `unrestricted`, `unknown`) significantly reduce reliability. Distributions using these special values provide little to no actionable license information. The predefined list covers common open source licenses, but the lack of SPDX identifiers means the data requires translation for cross-ecosystem use.
+- **Limitations**:
+  - The four special values reduce data quality: `open_source` doesn't specify which license, `restricted` doesn't provide actual terms, `unrestricted` lacks precise legal characterization, and `unknown` explicitly indicates missing information.
+  - The predefined list uses non-SPDX identifier notation (underscore-separated like `apache_2_0` instead of hyphen-separated SPDX like `Apache-2.0`), requiring translation.
+  - No support for SPDX expressions means complex licensing scenarios (AND, WITH, exceptions) cannot be properly expressed.
+  - Multiple licenses in the array are interpreted as OR by convention, but this is not formally specified in the metadata itself.
+  - Older distributions using CPAN::Meta::Spec version 1 may have inconsistent or missing license information.
+  - The predefined list may not include newer licenses or license versions, forcing use of the ambiguous `open_source` special value.
+  - Build tools must correctly generate META files from distribution metadata; errors in this process can result in incorrect license information.
 
 ## 7. Transformation Requirements
 
@@ -539,3 +584,18 @@ To make license information usable across ecosystems, processes must account for
    - Handle arbitrarily nested structures (arrays within hashes, hashes within arrays, license exceptions within complex expressions) by applying these rules recursively.
 6. If no license information is present in the Formula, flag the package as having no declared license.
 7. Validate the resulting SPDX expression using an SPDX parser.
+
+### Perl Ecosystem — CPAN
+1. Retrieve the `META.json` or `META.yml` file from the distribution, either from the source repository, by downloading and extracting the distribution tarball from CPAN, or via the MetaCPAN API.
+2. Parse the JSON or YAML file and extract the `license` field value. This field is mandatory and contains an array of license identifiers.
+3. For each license identifier in the array:
+   - Check if it's one of the four special values:
+     - If `open_source`: Flag as an OSI-approved license that requires manual identification. Check for LICENSE files in the distribution and use a license text scanner to identify the actual license.
+     - If `restricted`: Flag as proprietary/restricted. The actual license terms must be obtained from the distribution documentation or vendor.
+     - If `unrestricted`: Flag as public domain or similar. Check for documentation clarifying the exact status.
+     - If `unknown`: Flag as undetermined. Check for LICENSE files and documentation to manually identify the license.
+   - If it's from the predefined list (e.g., `perl_5`, `apache_2_0`, `mit`, `gpl_3`), translate to the corresponding SPDX identifier using a mapping table (e.g., `apache_2_0` → `Apache-2.0`, `gpl_3` → `GPL-3.0`, `perl_5` → `Artistic-1.0-Perl OR GPL-1.0-or-later`).
+4. If multiple licenses are present in the array (and none are special values), combine them into an SPDX expression with `OR` operators, reflecting CPAN's convention that multiple licenses represent alternatives.
+5. If any special values were encountered, document the ambiguity and include the need for manual review or additional license file scanning.
+6. Validate the resulting SPDX expression using an SPDX parser.
+7. Note that CPAN distributions may also include LICENSE or COPYING files that should be checked to confirm or supplement the metadata, especially when special values are used.
