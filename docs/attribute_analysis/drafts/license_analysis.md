@@ -61,6 +61,13 @@ While the POM.xml specification itself does not mandate license fields, Maven Ce
 - [Maven POM Reference — licenses section](https://maven.apache.org/pom.html)
 - [Maven Central publication requirements](https://central.sonatype.org/publish/requirements/#required-pom-metadata)
 
+### .NET Ecosystem — NuGet
+**License Information Available**: NuGet provides structured license metadata in the `.nuspec` file through the `<license>` element, which supports SPDX license expressions or references to license files included within the package. The older `<licenseUrl>` element, which provided external URLs to license text, has been deprecated in favor of embedding license information directly in the package. When using an SPDX identifier, the `type="expression"` attribute is specified; when referencing a file, `type="file"` is used along with the file path within the package. NuGet.org (the primary NuGet registry) displays license information on package pages and encourages the use of SPDX identifiers for clarity and standardization.
+
+**References**:
+- [NuGet .nuspec file reference — license element](https://learn.microsoft.com/en-us/nuget/reference/nuspec#license)
+- [NuGet license metadata deprecation announcement (2018)](https://github.com/NuGet/Announcements/issues/32)
+
 ## 3. Field Analysis
 
 This section groups ecosystems according to how license information can be specified in their package metadata. The focus here is on whether the declaration is unambiguous, ambiguous, or not supported at all, along with the types of definitions that are accepted in practice.
@@ -90,8 +97,17 @@ This section groups ecosystems according to how license information can be speci
   - Escape hatch: `proprietary`, used for closed-source packages.
   - Array of SPDX identifiers, with a documented `OR` semantics.
 - Composer validates declared licenses using the [`composer/spdx-licenses`](https://github.com/composer/spdx-licenses) library. Invalid identifiers or expressions trigger warnings but do not prevent publication.
-- Ambiguity mainly arises from legacy packages that predate SPDX adoption or that omit the `license` field entirely.
 - The `license` field in `composer.json` is the canonical source of license information, reflected consistently in Packagist and registry metadata.
+- Ambiguity mainly arises from legacy packages that predate SPDX adoption or that omit the `license` field entirely.
+
+#### .NET Ecosystem — NuGet
+- **Accepted definitions**:
+  - SPDX license identifiers and expressions (specified with `type="expression"` attribute in the `<license>` element).
+  - Escape hatch: Reference to a license file within the package (specified with `type="file"` attribute and a file path).
+  - Deprecated: The `<licenseUrl>` element that provided external URLs to license text, though this has been deprecated since 2018 in favor of embedding license information directly in packages using either `type="expression"` or `type="file"`.
+- The `<license>` element is optional, meaning some packages may omit license information entirely.
+- Ambiguity primarily arises from legacy packages that still use the deprecated `<licenseUrl>` element or packages that omit the `<license>` element altogether.
+- When SPDX expressions are used with `type="expression"`, the license declaration is unambiguous and machine-readable.
 
 ### Ambiguously specified
 
@@ -178,6 +194,12 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in `pom.xml` under the `<licenses>` section. The POM file is included in published artifacts (JAR, WAR, etc.) and is available from Maven Central and other Maven repositories. The POM is also distributed separately as a standalone artifact (`<artifactId>-<version>.pom`).
 - **Notes**: Maven Central enforces the presence of the `<licenses>` section with `<name>` and `<url>` fields but does not validate the content, format, or accuracy of the license information. The lack of structured validation means license data quality depends entirely on maintainer diligence.
 
+### .NET Ecosystem — NuGet
+- **Data type**: XML structure with a `<license>` element that contains a `type` attribute (either `expression` or `file`) and text content. When `type="expression"`, the text content is an SPDX license identifier or expression. When `type="file"`, the text content is a path to a license file within the package. The deprecated `<licenseUrl>` element contained a URL string pointing to external license text.
+- **License expression support**: Full support for SPDX identifiers and expressions when using `type="expression"`.
+- **Location**: Declared in the `.nuspec` file under the `<metadata>` section. The `.nuspec` file is included at the root of the `.nupkg` package (which is a ZIP archive). When `type="file"` is used, the referenced license file must also be included in the package. Both the `.nuspec` metadata and any included license files are available when the package is downloaded from NuGet.org or other NuGet feeds.
+- **Notes**: The `<license>` element is optional in the specification. NuGet.org validates SPDX expressions when `type="expression"` is used but does not enforce their presence. The transition from `<licenseUrl>` to `<license>` has improved the reliability of license metadata by embedding it within packages rather than relying on external URLs.
+
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
@@ -223,6 +245,12 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: The `mvn dependency:tree -Dverbose` can be used to list resolved dependencies and combined with POM inspection, though Maven does not provide a dedicated command to display only license information.
 - **Registry access**: Maven Central's web interface at `https://central.sonatype.com` and legacy search at `https://search.maven.org` display license information on package pages, parsed from the POM metadata.
 - **API access**: POM files can be retrieved directly from Maven Central using the repository URL pattern `https://repo1.maven.org/maven2/<groupId-as-path>/<artifactId>/<version>/<artifactId>-<version>.pom`. Maven Central also provides a REST API for searching artifacts, though license-specific queries are limited. Third-party services like MVNRepository (`https://mvnrepository.com`) provide additional search and API capabilities for license information.
+
+### .NET Ecosystem — NuGet
+- **Direct access**: License information is available in the `.nuspec` file within the package source code and at the root of the downloaded `.nupkg` package file. When `type="file"` is used, the license file is also included in the package at the specified path.
+- **CLI access**: The `dotnet list package` command does not display license information. The `nuget.exe` tool does not provide a dedicated command for querying license metadata. However, the `.nuspec` file can be extracted from `.nupkg` files (which are ZIP archives) and parsed manually or with third-party tools.
+- **Registry access**: NuGet.org displays license information prominently on package pages. The displayed information is parsed from the `<license>` element in the package's `.nuspec` file. For packages using `type="expression"`, the SPDX expression is shown directly. For packages using `type="file"`, a link to view the license file is provided.
+- **API access**: The NuGet V3 API provides license metadata through the package metadata endpoint. License information can be accessed programmatically via `https://api.nuget.org/v3-flatcontainer/<package-id>/<version>/<package-id>.nuspec`. Additionally, the Search API returns license information in search results. The `.nupkg` package file can be downloaded and the `.nuspec` extracted for full license details.
 
 ## 6. Quality Assessment
 
@@ -302,6 +330,16 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Historical packages may contain outdated license URLs, broken links, or references to deprecated license versions.
   - The `<url>` field is required but not validated, leading to inconsistent or non-existent URLs that cannot be reliably used for automated license text retrieval.
 
+### .NET Ecosystem — NuGet
+- **Coverage**: TBD
+- **Reliability**: Good. Packages using the modern `<license>` element with `type="expression"` provide reliable, machine-readable SPDX license data. NuGet.org validates SPDX expressions when they are used, ensuring correctness. However, the optional nature of the `<license>` element means some packages omit license information entirely. Legacy packages may still use the deprecated `<licenseUrl>` element, which points to external URLs that may become stale or inaccessible over time.
+- **Limitations**:
+  - The `<license>` element is optional, allowing packages to be published without license information.
+  - Legacy packages using the deprecated `<licenseUrl>` element rely on external URLs that may break, change, or become unavailable, making license information unreliable over time.
+  - When `type="file"` is used, license information requires extracting and parsing the referenced file from the package, adding complexity to automated processing.
+  - No enforcement mechanism to migrate legacy packages from `<licenseUrl>` to the modern `<license>` element, meaning both formats will coexist indefinitely.
+  - Some older packages may have neither `<license>` nor `<licenseUrl>`, leaving license information completely unspecified.
+
 ## 7. Transformation Requirements
 
 To make license information usable across ecosystems, processes must account for the different formats and locations where licenses are declared. The goal is to produce validated SPDX expressions from heterogeneous sources.
@@ -360,3 +398,19 @@ To make license information usable across ecosystems, processes must account for
    - If both approaches fail, flag the license as unresolvable and retain the original free-form text for manual review.
 4. If multiple `<license>` elements are present, combine them into an SPDX expression with `OR` operators, reflecting the conventional interpretation that the software may be used under any of the listed licenses.
 5. Validate the resulting SPDX expression using an SPDX parser.
+
+### .NET Ecosystem — NuGet
+1. Retrieve the `.nuspec` file from the package, either from the source repository, by downloading the `.nupkg` file from NuGet.org and extracting it (it's a ZIP archive), or via the NuGet API.
+2. Parse the XML and locate the `<license>` element within the `<metadata>` section.
+3. Check the `type` attribute of the `<license>` element:
+   - If `type="expression"`, extract the text content which contains an SPDX identifier or expression. Parse and validate it directly using an SPDX expression parser. No further steps are required.
+   - If `type="file"`, continue with the steps below.
+4. If `type="file"` is used:
+   - Extract the file path from the text content of the `<license>` element.
+   - Retrieve the license file from the package at the specified path.
+   - Apply a license text scanner (e.g., *scancode-toolkit*) to identify the most likely SPDX identifier(s).
+   - Convert the result into a valid SPDX expression.
+5. If the deprecated `<licenseUrl>` element is present instead of `<license>`:
+   - Attempt to retrieve the license text from the URL (if still accessible).
+   - Scan the retrieved text with a license detection tool to map it to an SPDX identifier.
+   - If the URL is inaccessible, flag the license as unresolvable and retain the URL for manual review.
