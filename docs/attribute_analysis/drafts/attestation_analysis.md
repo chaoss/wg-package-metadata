@@ -216,8 +216,11 @@ This section analyzes the technical formats and standards used for attestations 
 - **Data type**: Attestation bundles as defined in PEP 740
 - **Standard**: in-toto Attestation Framework
 - **Supported predicates**:
-  - SLSA Provenance (v1.0 specification)
-  - PyPI Publish attestations
+  - SLSA Provenance (v1.0 specification) - for build provenance claims
+  - PyPI Publish attestations (v1) - confirms publishing via Trusted Publisher (predicate type: `https://docs.pypi.org/attestations/publish/v1`)
+    - Minimal attestation: predicate body is empty JSON object `{}` or `null`
+    - Confirms package was uploaded via Trusted Publisher (not API token)
+    - Links to specific publisher identity (GitHub Actions workflow, Google Cloud service account, etc.)
 - **Signature format**: Identity-based signing using OpenID Connect (OIDC) identities instead of key pairs
 - **Verification material**: Includes certificate and transparency log information
 - **Location**: Separate from package files, accessible via PyPI Integrity API
@@ -741,6 +744,111 @@ This section outlines the steps required to retrieve, parse, and verify attestat
 
 ---
 
+## Concrete Examples
+
+This section provides real-world examples of attestations from different ecosystems, showing the actual data structures and how to inspect them.
+
+### Example: npm Attestation in Sigstore Rekor
+
+npm attestations are logged in Sigstore's Rekor transparency log. Here's an example entry:
+- **Rekor log index**: 274262258
+- **Search**: https://search.sigstore.dev/?logIndex=274262258
+- **Format**: in-toto Statement with SLSA v0.2 provenance
+- **Verification**: The Rekor entry provides tamper-evident proof of when the attestation was created
+
+To inspect an npm attestation:
+1. Query npm registry API: `https://registry.npmjs.org/-/npm/v1/attestations/${package}@${version}`
+2. Extract `logIndex` from the response
+3. Verify in Rekor: `https://rekor.sigstore.dev/api/v1/log/entries?logIndex=${logIndex}`
+
+### Example: PyPI Attestation Structure
+
+Real example from urllib3 package:
+- **URL**: https://pypi.org/integrity/urllib3/2.5.0/urllib3-2.5.0-py3-none-any.whl/provenance
+- **Response structure**:
+  ```json
+  {
+    "attestation_bundles": [{
+      "attestations": [{
+        "envelope": {
+          "signature": "<base64-encoded>",
+          "statement": "<base64-encoded JSON>"
+        },
+        "verification_material": {
+          "certificate": "<PEM-encoded X.509>",
+          "transparency_entries": [...]
+        }
+      }]
+    }],
+    "publisher": {
+      "kind": "GitHub",
+      "repository": "urllib3/urllib3",
+      "workflow": "publish.yml"
+    }
+  }
+  ```
+
+**Decoding the statement**: The `statement` field is base64-encoded. When decoded, it reveals:
+```json
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [{
+    "name": "urllib3-2.5.0-py3-none-any.whl",
+    "digest": {
+      "sha256": "e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc"
+    }
+  }],
+  "predicateType": "https://docs.pypi.org/attestations/publish/v1",
+  "predicate": null
+}
+```
+
+**Understanding the attestation**:
+- `_type`: Uses in-toto Statement v1 format
+- `subject`: Identifies the wheel file and its SHA256 digest
+- `predicateType`: Points to PyPI Publish attestation v1 specification
+- `predicate`: Empty/null for PyPI Publish attestations (confirms Trusted Publisher usage)
+- `publisher` metadata: Shows this was published from `urllib3/urllib3` repository via `publish.yml` workflow
+
+**Inspection tools**:
+- Online decoder: https://dsse.io/ (for Sigstore bundles)
+- Manual: Base64 decode the `statement` field to see attestation contents
+- Verification: Use `pypi-attestations` library to cryptographically verify
+
+### Example: Interpreting Predicate Types
+
+Different predicate types provide different kinds of attestations:
+
+1. **SLSA Provenance** (`https://slsa.dev/provenance/v0.2` or `v1.0`):
+   - Describes build process
+   - Includes builder identity, materials (source repository), invocation parameters
+   - Provides evidence about HOW the artifact was built
+
+2. **PyPI Publish** (`https://docs.pypi.org/attestations/publish/v1`):
+   - Minimal attestation (predicate is null or empty)
+   - Confirms artifact was uploaded via Trusted Publisher
+   - Publisher identity is in the bundle metadata (not predicate)
+   - Provides evidence about WHO published (authenticated via OIDC)
+
+3. **GitHub Artifact Attestations** (used by Homebrew):
+   - Includes GitHub workflow information
+   - Links artifact to specific GitHub Actions run
+   - Provides GitHub-specific provenance metadata
+
+### Verifying Attestations Manually
+
+For hands-on verification of attestations:
+
+1. **Fetch the attestation**: Use the ecosystem's API endpoint
+2. **Extract the statement**: Base64 decode if necessary
+3. **Inspect the predicate type**: Determines what is being attested
+4. **Verify the signature**:
+   - Check certificate against Sigstore Fulcio CA
+   - Verify transparency log inclusion (Rekor)
+   - Validate OIDC identity claims in certificate
+5. **Cross-reference publisher metadata**: Confirm expected workflow/repository
+6. **Verify digest**: Ensure `subject` digest matches actual artifact
+
 ## Notes on Trusted Publishing vs. Attestations
 
 It's important to distinguish between **trusted publishing** and **attestations**:
@@ -754,4 +862,27 @@ Ecosystems may have one without the other:
 - **Maven Central** has attestations but not OIDC-based trusted publishing
 - **npm**, **PyPI**, and **RubyGems** have both
 
-The combination of trusted publishing and attestations provides the strongest security guarantees: trusted publishing ensures authenticated uploads, while attestations provide verifiable provenance of what was uploaded.
+### Attestations Generated During Trusted Publishing
+
+In ecosystems with both trusted publishing and attestations (npm, PyPI, RubyGems), attestations are often automatically generated as part of the trusted publishing workflow:
+
+**Example: PyPI trusted publishing flow**
+1. Package is published from GitHub Actions using OIDC token (no API key needed)
+2. PyPI validates the OIDC token and authenticates the publisher
+3. PyPI automatically generates attestations:
+   - **PyPI Publish attestation**: Confirms package was uploaded via Trusted Publisher
+   - **SLSA Provenance** (if available): Contains build provenance details
+4. Attestations are signed using the OIDC identity
+5. Attestations are uploaded to Sigstore Rekor transparency log
+6. Attestations are made available via PyPI Integrity API
+
+This tight integration means that using trusted publishing automatically provides attestations, creating a complete chain of trust from source repository → CI build → registry publication.
+
+**Example: npm provenance**
+- Publishing with `npm publish --provenance` from GitHub Actions automatically:
+  - Creates SLSA v0.2 provenance statement
+  - Signs with ephemeral key and Sigstore Fulcio certificate
+  - Logs in Rekor transparency log
+  - Stores attestation in npm registry
+
+The combination of trusted publishing and attestations provides the strongest security guarantees: trusted publishing ensures authenticated uploads without long-lived credentials, while attestations provide cryptographically verifiable provenance of what was uploaded and how it was built.
