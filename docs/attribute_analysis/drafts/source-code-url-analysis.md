@@ -55,6 +55,13 @@ This section provides an overview of the ecosystems and package managers reviewe
 - [Composer schema — source field](https://getcomposer.org/doc/04-schema.md#source)
 - [Packagist API reference](https://packagist.org/apidoc)
 
+### Perl Ecosystem – CPAN
+
+**Source Code URL Information Available**: Yes, via the `resources->repository` field, usually found in `META.yml` or `META.json`. The field is a hash of key-value pairs that may contain the fields `url` - a URL pointing to the repository itself, `web` - a URL pointing to a web front-end for the repository, and `type` - a lowercase string indicating the Version Control System used.
+
+**References**
+- [CPAN::Meta::Spec - resources->repository](https://metacpan.org/pod/CPAN::Meta::Spec#repository)
+
 ## 3. Field Analysis
 
 This section groups ecosystems according to how source code URL information can be specified in their package metadata. The focus here is on whether the declaration is unambiguous, ambiguous, or not supported at all, along with the types of definitions that are accepted in practice.
