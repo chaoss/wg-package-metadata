@@ -815,6 +815,156 @@ Real example from urllib3 package:
 - Manual: Base64 decode the `statement` field to see attestation contents
 - Verification: Use `pypi-attestations` library to cryptographically verify
 
+### Example: Maven Central Sigstore Bundle
+
+Real example from ristretto Java library:
+- **URL**: https://repo1.maven.org/maven2/org/leplus/ristretto/2.0.0/ristretto-2.0.0.jar.sigstore.json
+- **Format**: Sigstore bundle v0.3
+- **Response structure**:
+  ```json
+  {
+    "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+    "verificationMaterial": {
+      "tlogEntries": [{
+        "logIndex": "<rekor-log-index>",
+        "logId": { "keyId": "<base64>" },
+        "kindVersion": { "kind": "hashedrekord", "version": "0.0.1" },
+        "integratedTime": "<unix-timestamp>",
+        "inclusionPromise": { "signedEntryTimestamp": "<base64>" },
+        "inclusionProof": {
+          "logIndex": "<index>",
+          "rootHash": "<hash>",
+          "treeSize": "<size>",
+          "hashes": ["<base64>", ...],
+          "checkpoint": { "envelope": "<signature>" }
+        },
+        "canonicalizedBody": "<base64-encoded-metadata>"
+      }],
+      "certificate": "<X.509-cert-raw-bytes>"
+    },
+    "messageSignature": {
+      "messageDigest": {
+        "algorithm": "SHA2_256",
+        "digest": "<base64-sha256>"
+      },
+      "signature": "<base64-ecdsa-signature>"
+    }
+  }
+  ```
+
+**Understanding the Maven Central bundle**:
+- `mediaType`: Sigstore bundle v0.3 format
+- `tlogEntries`: Rekor transparency log entry with Merkle tree inclusion proof
+- `certificate`: X.509 certificate containing OIDC identity claims (GitHub Actions details, workflow, git tags)
+- `messageSignature`: ECDSA signature and SHA-256 digest of the JAR file
+- `canonicalizedBody`: Base64-encoded metadata about the signed artifact
+
+**Verification process**:
+1. Extract certificate and verify against Sigstore Fulcio CA
+2. Verify Rekor transparency log inclusion using `inclusionProof`
+3. Verify signature matches JAR file digest
+4. Validate OIDC identity from certificate matches expected publisher
+
+**Example cosign verification**:
+```bash
+cosign verify-blob --bundle ristretto-2.0.0.jar.sigstore.json \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp='^https://github.com/leplusorg/ristretto/.+' \
+  ristretto-2.0.0.jar
+```
+
+### Example: RubyGems Sigstore Attestation
+
+RubyGems uses Sigstore bundles with DSSE (Dead Simple Signing Envelope) format:
+- **Format**: JSON attestation bundles uploaded during `gem push --attestation FILE`
+- **Adoption tracking**: https://segiddins.github.io/are-we-attested-yet/
+- **Bundle structure**: Follows standard Sigstore bundle specification similar to npm and Homebrew
+
+**Publishing example** (from Rails gem):
+```bash
+# Attestation automatically added when publishing from GitHub Actions
+gem push --attestation attestation.json rails-7.2.0.gem
+```
+
+**Verification example**:
+```bash
+gem sigstore_cosign_verify_bundle \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity https://github.com/rails/rails/.github/workflows/release.yml@refs/tags/v7.2.0
+```
+
+**Bundle components**:
+- **DSSE envelope**: Contains signature and statement
+- **Certificate**: X.509 cert from Sigstore Fulcio with GitHub identity
+- **Transparency log**: Rekor entry with inclusion proof
+- **Statement**: in-toto format linking gem file to build provenance
+
+The attestation confirms the gem was built and published from the specified GitHub Actions workflow.
+
+### Example: Homebrew Bottle Attestation
+
+Homebrew uses GitHub's artifact attestations:
+- **Format**: in-toto Statement with SLSA Build L2 predicate
+- **Storage**: GitHub's native attestation system
+- **View attestations**: https://github.com/Homebrew/homebrew-core/attestations
+
+**Attestation structure**:
+```json
+{
+  "subject": [{
+    "name": "bottle-filename.tar.gz",
+    "digest": {
+      "sha256": "7d01bc414859db57e055c814daa10e9c586626381ea329862ad4300f9fee78ce"
+    }
+  }],
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://github.com/Homebrew/actions/...",
+      "externalParameters": {
+        "workflow": {
+          "repository": "https://github.com/Homebrew/homebrew-core",
+          "ref": "refs/heads/master"
+        }
+      }
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://github.com/Homebrew/actions/generate-build-provenance"
+      },
+      "metadata": {
+        "invocationId": "https://github.com/Homebrew/homebrew-core/actions/runs/<run-id>"
+      }
+    }
+  }
+}
+```
+
+**Understanding the Homebrew attestation**:
+- Links bottle to specific GitHub Actions workflow run
+- SLSA Build L2 compliant provenance
+- Stored in Sigstore bundle format with signature
+
+**Verification example**:
+```bash
+# Method 1: Using Homebrew
+HOMEBREW_VERIFY_ATTESTATIONS=1 brew install <formula>
+
+# Method 2: Using cosign directly
+cosign verify-blob-attestation \
+  --bundle <bottle>.jsonl \
+  --new-bundle-format \
+  --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+  --certificate-identity="https://github.com/Homebrew/homebrew-core/.github/workflows/dispatch-rebottle.yml@refs/heads/master" \
+  <bottle-file>
+```
+
+**What's attested**:
+- Bottle was built by official Homebrew CI (not a third party)
+- Specific GitHub Actions workflow that built it
+- Git commit SHA of the formula
+- Workflow run ID for complete audit trail
+
 ### Example: Interpreting Predicate Types
 
 Different predicate types provide different kinds of attestations:
