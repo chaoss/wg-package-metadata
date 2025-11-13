@@ -151,6 +151,24 @@ Alpine policy requires the `license` field to be set for all packages. License f
 - [Alpine Linux APKBUILD Reference](https://wiki.alpinelinux.org/wiki/APKBUILD_Reference)
 - [Alpine Linux Package Policies](https://wiki.alpinelinux.org/wiki/Creating_an_Alpine_package)
 
+### FreeBSD Ecosystem — Ports
+**License Information Available**: FreeBSD Ports specify license information in the port's `Makefile` using structured variables:
+
+- `LICENSE`: Specifies one or more short identifiers for the license(s) under which the port is distributed. FreeBSD maintains a predefined list of license identifiers in `Mk/bsd.licenses.db.mk`. Common identifiers include `MIT`, `GPLv2`, `GPLv3`, `APACHE20`, `BSD2CLAUSE`, `BSD3CLAUSE`, among others.
+- `LICENSE_COMB`: Indicates how multiple licenses apply. Values include:
+  - `single` (default): Only one license applies (used with a single license identifier)
+  - `multi`: All licenses apply simultaneously (AND relationship)
+  - `dual`: Any of the licenses may be chosen (OR relationship)
+- `LICENSE_FILE`: Points to the file containing the full license text within the port's source tree
+- `LICENSE_TEXT`: Contains the full license text directly within the `Makefile` (used when no separate file exists)
+- `LICENSE_PERMS`: Defines permissions associated with the license (e.g., `dist-mirror`, `dist-sell`, `pkg-mirror`, `pkg-sell`, `auto-accept`)
+- `LICENSE_NAME`: Provides the full name of a custom license (used when defining non-standard licenses)
+
+The `LICENSE` variable is mandatory for ports. FreeBSD uses its own set of license identifiers rather than strict SPDX identifiers, though many align with SPDX conventions. For predefined licenses in the database, the framework automatically provides the license name, permissions, and often the license file location. Custom licenses not in the predefined list can be defined by setting `LICENSE_NAME`, `LICENSE_TEXT` or `LICENSE_FILE`, and `LICENSE_PERMS`.
+
+**Reference**:
+- [FreeBSD Porter's Handbook — Licenses](https://docs.freebsd.org/en/books/porters-handbook/)
+
 ## 3. Field Analysis
 
 This section groups ecosystems according to how license information can be specified in their package metadata. The focus here is on whether the declaration is unambiguous, ambiguous, or not supported at all, along with the types of definitions that are accepted in practice.
@@ -291,6 +309,20 @@ This section groups ecosystems according to how license information can be speci
 - When multiple licenses are listed (space-separated), the relationship between them (AND vs. OR) is not explicitly specified in the format, relying on convention or package documentation.
 - The APKBUILD format does not support SPDX expression operators (AND, OR, WITH), limiting the ability to express complex licensing scenarios unambiguously.
 
+#### FreeBSD Ecosystem — Ports
+- **Accepted definitions**:
+  - FreeBSD-specific license identifiers from the predefined list in `Mk/bsd.licenses.db.mk` (e.g., `MIT`, `GPLv2`, `GPLv3`, `APACHE20`, `BSD2CLAUSE`, `BSD3CLAUSE`)
+  - Multiple licenses with explicit combination semantics via `LICENSE_COMB`:
+    - `single` (default): Single license applies
+    - `multi`: All licenses apply (AND relationship)
+    - `dual`: Any license may be chosen (OR relationship)
+  - Custom licenses defined via `LICENSE_NAME`, `LICENSE_TEXT` or `LICENSE_FILE`, and `LICENSE_PERMS`
+- The `LICENSE` variable is mandatory for all ports.
+- FreeBSD uses its own set of license identifiers rather than strict SPDX identifiers, though many identifiers align with SPDX conventions (e.g., `MIT`, `BSD2CLAUSE`), while others use different naming (e.g., `GPLv2` instead of `GPL-2.0-only`, `APACHE20` instead of `Apache-2.0`).
+- The `LICENSE_COMB` variable provides explicit support for expressing AND/OR relationships between multiple licenses, making the semantics unambiguous. However, the non-SPDX identifier naming introduces ambiguity for cross-ecosystem use.
+- FreeBSD's predefined license database provides consistency within the FreeBSD ecosystem, but requires translation to SPDX identifiers for broader interoperability.
+- No support for SPDX WITH operators (license exceptions) through the structured variables, though exceptions could be defined as custom licenses.
+
 #### Go Ecosystem — Go Modules
 - **Accepted definitions**:
   - License files such as `LICENSE` located in the module root or subdirectories.
@@ -405,6 +437,16 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in the `APKBUILD` file (a shell script) located in the Alpine package repository. The APKBUILD is not included in the binary package itself. During the build process, license metadata is extracted from the APKBUILD and stored in the package index (APKINDEX). License files are typically included in the package at `/usr/share/licenses/<pkgname>/`. The license metadata is available through the APK package manager (`apk info <package>`), the package index, and Alpine's package search website.
 - **Notes**: The `license` field is mandatory in Alpine Linux packages. While SPDX identifiers are encouraged, there is no validation mechanism. The format is simple but limited—complex licensing scenarios cannot be expressed unambiguously due to the lack of structured operators. The space-separated format is compact but requires convention or documentation to clarify whether multiple licenses represent AND or OR relationships.
 
+### FreeBSD Ecosystem — Ports
+- **Data type**: Structured variables in the port's `Makefile`. The `LICENSE` variable contains one or more FreeBSD license identifiers (space-separated when multiple). The `LICENSE_COMB` variable indicates the relationship between multiple licenses.
+- **License expression support**: Support for expressing license combinations through the `LICENSE_COMB` variable with three explicit values:
+  - `single` (default): One license applies
+  - `multi`: All licenses apply (AND relationship, e.g., `LICENSE=MIT GPLv2 LICENSE_COMB=multi` means MIT AND GPLv2)
+  - `dual`: Choice of licenses (OR relationship, e.g., `LICENSE=MIT GPLv2 LICENSE_COMB=dual` means MIT OR GPLv2)
+  - No native support for SPDX WITH operators (license exceptions). Exceptions would need to be defined as custom licenses or included in the license text/file.
+- **Location**: Declared in the port's `Makefile` located in the ports tree (e.g., `/usr/ports/category/portname/Makefile`). The Makefile is the source of truth for port metadata during building. License identifiers reference a predefined database (`Mk/bsd.licenses.db.mk`) that provides license names, permissions, and often default license file locations. The `LICENSE_FILE` variable can point to license text files within the port's work directory (extracted from source). The `LICENSE_TEXT` variable can contain license text directly in the Makefile for cases where no separate file exists. License metadata is embedded in the resulting binary package and accessible via `pkg` tools. FreshPorts and other web interfaces display license information parsed from port Makefiles.
+- **Notes**: The `LICENSE` variable is mandatory for all ports. FreeBSD uses its own predefined set of license identifiers rather than strict SPDX identifiers, though many align (e.g., `MIT`) while others differ (e.g., `GPLv2`, `APACHE20`). The `LICENSE_COMB` mechanism provides unambiguous AND/OR semantics for multiple licenses through explicit variable values. However, the non-SPDX naming requires translation for cross-ecosystem use. The `LICENSE_PERMS` variable defines distribution and selling permissions, providing additional metadata not commonly found in other ecosystems. Custom licenses can be fully defined within a port using `LICENSE_NAME`, `LICENSE_TEXT`/`LICENSE_FILE`, and `LICENSE_PERMS`, allowing flexibility beyond the predefined list.
+
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
@@ -498,6 +540,12 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: The `apk info <package>` command displays package information but does not include a dedicated license field in its standard output. The `apk info -L <package>` lists installed files, which can be used to locate license files. The `apk info -w <package>` displays the web URL for the package. License information must typically be retrieved from the package index or Alpine's website.
 - **Registry access**: Alpine's package website (https://pkgs.alpinelinux.org/packages) displays license information for packages, extracted from the APKBUILD metadata. The website provides search and browsing capabilities with license information visible on package detail pages.
 - **API access**: Alpine's package index (APKINDEX) is available as a gzipped text file from Alpine mirrors (e.g., `https://dl-cdn.alpinelinux.org/alpine/<version>/<repository>/<arch>/APKINDEX.tar.gz`). The index can be parsed to extract license metadata for all packages in a repository. The APKINDEX format is a simple key-value text format. Package build files (APKBUILDs) are available in Alpine's aports Git repository (https://gitlab.alpinelinux.org/alpine/aports) where the `license` variable can be read directly.
+
+### FreeBSD Ecosystem — Ports
+- **Direct access**: License information is available in the port's `Makefile` located in the ports tree (e.g., `/usr/ports/category/portname/Makefile`). The ports tree can be checked out locally using SVN or Git (the official repository is at `https://git.freebsd.org/ports.git`). Port Makefiles are plain text and can be read directly using standard tools. For installed packages, license metadata is embedded in the binary package database.
+- **CLI access**: The `make -C /usr/ports/category/portname -V LICENSE` command displays the license identifier(s) for a port. Similarly, `-V LICENSE_COMB`, `-V LICENSE_FILE`, and other license variables can be queried. For installed packages, the `pkg info <package>` command displays package metadata including licenses. The `pkg query '%L' <package>` command can be used to query specifically the license field. The `pkg` tool queries the local package database for installed packages.
+- **Registry access**: FreshPorts (https://www.freshports.org/) provides a comprehensive web interface for browsing FreeBSD ports, including detailed license information parsed from port Makefiles. Each port page displays the license identifiers, license combination type, and other license-related metadata. The site provides search capabilities and tracks port updates, making it the primary web-based resource for FreeBSD ports information.
+- **API access**: FreshPorts provides RSS feeds and some structured data access, though not a formal REST API. The FreeBSD ports tree itself is the canonical source and can be accessed via Git for programmatic processing. Port Makefiles can be parsed to extract `LICENSE` and related variables. The `pkg` tool supports JSON output for queries (`pkg query --json`), allowing programmatic access to license metadata for installed packages. Binary packages distributed via FreeBSD package repositories include embedded license metadata that can be extracted from downloaded packages.
 
 ## 6. Quality Assessment
 
@@ -678,6 +726,20 @@ To assess the practical quality and machine-readability of license metadata, we 
   - License files are typically included at `/usr/share/licenses/<pkgname>/` but this is by convention, not enforcement—some packages may not include license text files.
   - The space-separated format is compact but limited—expressing licenses with exceptions, nested conditions, or file-level variations is not possible.
   - Quality depends entirely on individual package maintainer knowledge and diligence, with no centralized validation or quality control mechanism.
+
+### FreeBSD Ecosystem — Ports
+- **Coverage**: TBD
+- **Reliability**: Good to strong. The `LICENSE` variable is mandatory for all FreeBSD ports, ensuring comprehensive coverage across the ports collection. FreeBSD maintains a predefined database of license identifiers (`Mk/bsd.licenses.db.mk`) that provides consistency and reduces ambiguity within the FreeBSD ecosystem. The `LICENSE_COMB` variable provides explicit, unambiguous semantics for expressing AND/OR relationships between multiple licenses through three distinct values (`single`, `multi`, `dual`). The ports framework validates that license identifiers either match entries in the predefined database or are properly defined as custom licenses with all required metadata.
+- **Limitations**:
+  - FreeBSD uses its own set of license identifiers rather than SPDX identifiers, requiring translation for cross-ecosystem use. While many identifiers align (e.g., `MIT`, `BSD2CLAUSE`, `BSD3CLAUSE`), others differ significantly (e.g., `GPLv2` vs. `GPL-2.0-only`, `APACHE20` vs. `Apache-2.0`).
+  - The predefined license list may not include the latest SPDX licenses or rare licenses, forcing use of custom license definitions which adds complexity and potential inconsistency.
+  - No native support for SPDX WITH operators (license exceptions)—exceptions must be handled as custom licenses or included in license text, making them less structured and harder to parse automatically.
+  - The Makefile format requires `make` to properly expand variables and evaluate conditionals, which can complicate static analysis and automated extraction of license metadata.
+  - Custom licenses require manual definition of `LICENSE_NAME`, `LICENSE_TEXT` or `LICENSE_FILE`, and `LICENSE_PERMS`, which relies on port maintainer accuracy and completeness.
+  - The `LICENSE_PERMS` variable (defining distribution and selling permissions) uses FreeBSD-specific conventions that don't directly map to SPDX or other ecosystems' permission models.
+  - Quality depends on port maintainer diligence in selecting appropriate license identifiers from the predefined list and ensuring `LICENSE_FILE` or `LICENSE_TEXT` accurately reflects the actual license.
+  - Historical ports may use outdated license identifiers or definitions that haven't been updated to reflect changes in the upstream software's licensing.
+  - The ports framework provides excellent structure and consistency within FreeBSD, but its ecosystem-specific conventions create friction when attempting to aggregate or compare license data across multiple package ecosystems.
 
 ## 7. Transformation Requirements
 
@@ -895,3 +957,29 @@ To make license information usable across ecosystems, processes must account for
    - Use the scanning results to supplement or replace the declared license identifiers.
 6. Construct the SPDX expression using the determined operators (AND or OR) and the mapped SPDX identifiers.
 7. Validate the resulting SPDX expression using an SPDX parser.
+
+### FreeBSD Ecosystem — Ports
+1. Retrieve the port's `Makefile` from the FreeBSD ports tree, either by accessing the local ports tree (e.g., `/usr/ports/category/portname/Makefile`), cloning the Git repository (https://git.freebsd.org/ports.git), or accessing it via FreshPorts.
+2. Parse the Makefile to extract the `LICENSE`, `LICENSE_COMB`, `LICENSE_FILE`, `LICENSE_TEXT`, and `LICENSE_NAME` variables. This requires either executing `make` with the appropriate variable queries or parsing the Makefile statically (which may require handling make conditionals and variable expansions).
+3. For each license identifier in the `LICENSE` variable (space-separated if multiple):
+   - Check if it's a predefined license identifier from `Mk/bsd.licenses.db.mk`. Maintain a mapping table of FreeBSD license identifiers to SPDX identifiers. Common mappings include:
+     - `MIT` → `MIT`
+     - `GPLv2` → `GPL-2.0-only`
+     - `GPLv3+` → `GPL-3.0-or-later`
+     - `APACHE20` → `Apache-2.0`
+     - `BSD3CLAUSE` → `BSD-3-Clause`
+     - And many others from the predefined database
+   - If it's a custom license (not in the predefined list), extract the `LICENSE_NAME` and `LICENSE_TEXT` or `LICENSE_FILE` to attempt identification:
+     - If `LICENSE_TEXT` is present, apply a license text scanner (e.g., *scancode-toolkit*) to the text.
+     - If `LICENSE_FILE` is present, retrieve the file from the port's work directory or extracted source and scan it.
+     - If scanning succeeds, map to an SPDX identifier.
+     - If scanning fails, flag the license as requiring manual review and retain the FreeBSD identifier and custom license information.
+4. Determine the license combination semantics using the `LICENSE_COMB` variable:
+   - If `LICENSE_COMB=single` or not set (default): Use only the first license identifier (or the single license if only one is specified).
+   - If `LICENSE_COMB=multi`: Combine all mapped SPDX identifiers with `AND` operators (e.g., `MIT AND GPL-2.0-only`).
+   - If `LICENSE_COMB=dual`: Combine all mapped SPDX identifiers with `OR` operators (e.g., `MIT OR GPL-2.0-only`).
+5. For cases where the port has license exceptions or special terms not expressible through standard SPDX identifiers:
+   - Review the `LICENSE_FILE` or `LICENSE_TEXT` for additional clauses or modifications.
+   - If the exception is a recognized SPDX exception, construct an SPDX expression with the `WITH` operator (e.g., `GPL-2.0-or-later WITH Classpath-exception-2.0`).
+   - If the exception is not a standard SPDX exception, flag it for manual review and document the custom terms.
+6. Validate the resulting SPDX expression using an SPDX parser.
