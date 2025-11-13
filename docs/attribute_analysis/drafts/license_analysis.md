@@ -10,6 +10,18 @@ _TBD after sections 2–7 are finalized._
 
 This section provides an overview of the ecosystems and package managers reviewed to determine whether they make license information available as part of their metadata. For each package manager, we indicate the level of support for license data and point to the relevant specification or documentation. This establishes the foundation for deeper analysis in subsequent sections.
 
+### C++ Ecosystem — Conan
+**License Information Available**: Conan provides a `license` attribute in the `conanfile.py` (or `conanfile.txt` for simpler configurations). The `license` attribute accepts a string value that identifies the software license. While there is no strict format enforcement, the documentation recommends using SPDX identifiers for standardization and clarity. The `license` attribute is optional but strongly recommended for packages published to ConanCenter (the central public repository).
+
+**Reference**:
+- [Conan Reference: Conanfile Attributes](https://docs.conan.io/2/reference/conanfile/attributes.html)
+
+### C++ Ecosystem — Vcpkg
+**License Information Available**: Vcpkg provides a `license` field in the `vcpkg.json` manifest file. According to the vcpkg documentation, the `license` field should be either an SPDX 3.19 license expression or `null` as an escape hatch for licenses that cannot be expressed as SPDX (indicating users must read the deployed `/share/<port>/copyright` file). DocumentRefs are not supported. While this specification is not technically enforced through validation, it defines the expected format for the field. The license field is optional in `vcpkg.json`.
+
+**Reference**:
+- [vcpkg Reference: vcpkg.json manifest](https://learn.microsoft.com/en-us/vcpkg/reference/vcpkg-json)
+
 ### Rust Ecosystem — Cargo
 **License Information Available**: SPDX expression (with escape hatch to provide a license file instead)
 **Reference**: [Cargo Reference: The Manifest Format](https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields)
@@ -231,7 +243,25 @@ This section groups ecosystems according to how license information can be speci
 - When SPDX expressions are used, the license declaration is unambiguous and machine-readable.
 - **Note**: Other RPM-based distributions (Red Hat Enterprise Linux, CentOS, openSUSE) have varying degrees of SPDX adoption. Some still accept free-form license strings, making the ecosystem as a whole less consistent. However, Fedora's approach represents the strongest and most unambiguous license metadata specification among RPM distributions.
 
+#### C++ Ecosystem — Vcpkg
+- **Accepted definitions**:
+  - SPDX 3.19 license expressions (specified format)
+  - Escape hatch: `null` value for licenses that cannot be expressed as SPDX (indicating users must read the deployed `/share/<port>/copyright` file)
+- When the specification is followed (SPDX expressions or `null`), the license declaration is unambiguous and machine-readable. The challenge is that non-conforming values can be introduced due to lack of enforcement.
+- The `license` field is optional in `vcpkg.json`, meaning packages can be created without license information.
+
 ### Ambiguously specified
+
+#### C++ Ecosystem — Conan
+- **Accepted definitions**:
+  - SPDX license identifiers (recommended but not enforced)
+  - Free-form text strings (any string value accepted)
+  - No support for SPDX license expressions with operators (AND, OR, WITH)
+- The `license` attribute is optional, allowing packages to be published without license information.
+- While Conan's documentation recommends using SPDX identifiers for standardization, there is no validation mechanism to enforce SPDX format or check identifier validity.
+- ConanCenter (the central public repository) has submission guidelines that strongly recommend including license information, but this is a policy requirement rather than technical enforcement.
+- When multiple licenses apply, there is no structured way to express the relationship (AND vs. OR)—multiple licenses would typically be listed as comma-separated or otherwise delimited text within the string, making the semantics ambiguous.
+- The lack of validation and optional nature mean license information quality varies significantly across packages, depending on maintainer awareness and diligence.
 
 #### Perl Ecosystem — CPAN
 - **Accepted definitions**:
@@ -344,6 +374,18 @@ This section groups ecosystems according to how license information can be speci
 
 License metadata is not only expressed in different formats, but also stored in different locations across ecosystems. Some package managers require the license to be declared directly in project source files, others embed it into the distributed package, and some expose it only through registry metadata or websites. These variations affect both the reliability of license declarations and the ease with which automated tools can access them.
 
+### C++ Ecosystem — Conan
+- **Data type**: String in the `license` attribute of `conanfile.py` (or `conanfile.txt`). Accepts free-form text without validation.
+- **License expression support**: No support for structured SPDX expressions with operators (AND, OR, WITH). The `license` attribute is a simple string field. Multiple licenses must be represented as delimited text within the single string (e.g., "MIT, Apache-2.0"), with no formal specification of the delimiter or semantics (AND vs. OR).
+- **Location**: Declared in `conanfile.py` or `conanfile.txt` in the package source. The conanfile is included in the package recipe uploaded to Conan repositories (local or ConanCenter). When a package is installed, the license information from the conanfile is stored in the package metadata in the local Conan cache. Conan's package metadata JSON files (stored in `~/.conan2/p/` or similar paths) include the license information. License text files (e.g., `LICENSE`, `COPYING`) are typically included in the package source but are not part of the conanfile metadata structure.
+- **Notes**: The optional nature of the `license` attribute and lack of validation means packages may have no license information, SPDX identifiers, free-form text, or any combination. The lack of structured expression support makes complex licensing scenarios (AND, OR, exceptions) ambiguous. ConanCenter has stricter guidelines requiring license information, but technical enforcement is limited.
+
+### C++ Ecosystem — Vcpkg
+- **Data type**: String or `null` in the `license` field of `vcpkg.json`. The specification states it should be an SPDX 3.19 license expression or `null` as an escape hatch, but any string value is technically accepted due to lack of validation.
+- **License expression support**: The specification requires SPDX 3.19 license expressions (supporting operators like `OR`, `AND`, `WITH`), with `null` as an escape hatch for licenses that cannot be expressed as SPDX. However, there is no validation to enforce correct SPDX expression format. In practice, the field can contain SPDX expressions, SPDX identifiers, free-form text, or `null`.
+- **Location**: Declared in `vcpkg.json` manifest file at the root of the port directory in the centralized vcpkg ports repository on GitHub (e.g., `ports/<package>/vcpkg.json` in https://github.com/microsoft/vcpkg). When vcpkg installs a package, the manifest metadata is stored locally in the vcpkg installation directory. When `license` is `null` (the escape hatch), the copyright file is expected at `/share/<port>/copyright` in the installed package, providing license information for cases where SPDX expressions are insufficient. License text files are typically in the package source and are installed to the package's installation directory. The vcpkg binary cache (when used) includes the package's license files. Unlike package managers with registry services (e.g., ConanCenter, npm registry), vcpkg uses a file-based approach in a GitHub repository rather than a database-backed registry service with web UI and API.
+- **Notes**: The optional `license` field means packages can be created without license information. The gap between the specification (SPDX 3.19 expressions with `null` escape hatch) and reality (no validation, any string accepted) means license data quality varies widely. The `null` escape hatch provides a standardized way to indicate that license information must be obtained from the copyright file, but doesn't provide structured, machine-readable metadata in the manifest itself. The lack of validation means SPDX expressions may be malformed, free-form text may be used, or the field may not conform to the documented specification.
+
 ### Rust Ecosystem — Cargo
 - **Data type**: String containing an SPDX expression.
 - **License expression support**: Accepts both single SPDX identifiers (e.g., `MIT`) and full SPDX expressions (e.g., `MIT OR Apache-2.0`).
@@ -450,6 +492,18 @@ License metadata is not only expressed in different formats, but also stored in 
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
+
+### C++ Ecosystem — Conan
+- **Direct access**: License information is available in the `conanfile.py` or `conanfile.txt` file within the package source. When packages are installed, license metadata is stored in Conan's local cache (e.g., `~/.conan2/p/<package>/metadata`) as JSON files that can be read directly. License text files in the package source can also be accessed if included.
+- **CLI access**: The `conan inspect <reference>` command displays package metadata including the license field. The `conan list <reference>` command can also show package information. These commands work with both remote repositories and locally installed packages. The output shows the license value as declared in the conanfile.
+- **Registry access**: ConanCenter (https://conan.io/center/) provides a web interface for browsing packages with license information displayed on each package page. The license information shown is extracted from the package's conanfile metadata. Third-party Conan repositories may also provide web interfaces, but this varies by repository.
+- **API access**: Conan repositories provide REST APIs for querying package metadata. ConanCenter exposes package information through its API, including license data. The Conan client can query remote repositories programmatically using the Conan Python API. Package recipe files (conanfiles) can be downloaded from repositories and parsed to extract license information. The Conan v2 API provides methods to access package metadata from both local cache and remote repositories.
+
+### C++ Ecosystem — Vcpkg
+- **Direct access**: License information is available in the `vcpkg.json` manifest file in the vcpkg ports repository (https://github.com/microsoft/vcpkg). The ports repository can be cloned locally, and manifest files are plain JSON that can be read with any text editor or JSON parser. When vcpkg installs a package, the manifest is stored in the vcpkg installation directory. License text files from the package source are installed to the package's installation prefix (e.g., `vcpkg_installed/<triplet>/share/<package>/`).
+- **CLI access**: The `vcpkg search <package>` command can display package information, though license information may not be shown in the summary output. The manifest file can be read directly using file system commands (e.g., `cat ports/<package>/vcpkg.json`). The `vcpkg list` command shows installed packages but does not display license information in its output. Accessing license metadata typically requires reading the `vcpkg.json` file directly or checking the installed license files.
+- **Registry access**: Vcpkg does not provide a web-based registry service equivalent to ConanCenter, npm registry, or PyPI. Package information is stored in the centralized vcpkg ports repository on GitHub (https://github.com/microsoft/vcpkg). Users can browse the repository online to view `vcpkg.json` files and see license information. Some third-party tools and websites provide searchable interfaces to vcpkg ports, but these are community efforts rather than official Microsoft-provided registry infrastructure.
+- **API access**: Vcpkg does not provide a dedicated REST API for querying package metadata. However, the centralized ports repository can be accessed via GitHub's API to retrieve `vcpkg.json` files programmatically. The vcpkg repository structure is file-based, so package metadata must be extracted by parsing JSON files from the repository. Tools can clone the vcpkg repository and programmatically read manifest files to aggregate license information across ports.
 
 ### Rust Ecosystem — Cargo
 - **Direct access**: License information is available in the `Cargo.toml` file within the source code and redistributed in the `.crate` package.
@@ -565,6 +619,30 @@ To assess the practical quality and machine-readability of license metadata, we 
 - Processed data available in [`licenses-0.1_processed.csv`](licenses-0.1_processed.csv) and [`licenses-1_processed.csv`](licenses-1_processed.csv)
 
 **Sample Size Impact**: Comparing the two sample sizes reveals how license metadata quality varies with package popularity. In most ecosystems, the top 0.1% packages (the most popular) show comparable or slightly different coverage compared to the broader top 1% sample. Significant differences between samples can indicate that less popular packages have different metadata practices, either better (when maintainers are more careful) or worse (when packages are less actively maintained). Notable findings include ecosystems like Docker, Deno, and Pub which show 0% coverage due to lack of structured license metadata fields. Detailed per-ecosystem comparisons are provided in the coverage results.
+
+### C++ Ecosystem — Conan
+- **Coverage**: TBD
+- **Reliability**: Weak to mixed. The `license` attribute is optional, allowing packages to be published without license information. There is no validation of the license field content—any string value is accepted, including misspellings, non-SPDX identifiers, custom abbreviations, or arbitrary text. ConanCenter (the central public repository) has submission guidelines that strongly recommend including license information and using SPDX identifiers, which improves reliability for packages in ConanCenter compared to private or third-party repositories. However, even ConanCenter relies primarily on code review rather than automated validation, meaning quality depends on reviewer diligence and package maintainer awareness.
+- **Limitations**:
+  - The `license` field is optional, allowing packages without any license metadata.
+  - No validation mechanism—any string is accepted, including invalid, misspelled, or non-standard license identifiers.
+  - No support for SPDX expressions with structured operators (AND, OR, WITH), making complex licensing scenarios ambiguous.
+  - Multiple licenses must be represented as delimited text within a string (e.g., "MIT, Apache-2.0") with no formal specification of delimiters or semantics (AND vs. OR), requiring interpretation or external documentation.
+  - Quality varies dramatically between ConanCenter (with human review) and private/third-party repositories (minimal or no quality control).
+  - No centralized enforcement or migration path to improve license metadata quality for existing packages.
+  - The `conanfile.py` format requires Python code execution to extract metadata, which can pose security concerns and complicates automated parsing compared to declarative formats like JSON.
+  - License text files are expected by convention but not enforced—packages may declare a license in metadata without including the actual license text.
+
+### C++ Ecosystem — Vcpkg
+- **Coverage**: TBD
+- **Reliability**: Weak to mixed. The `license` field is optional in `vcpkg.json`, allowing packages to be created without license information. The vcpkg documentation specifies that the license field should be either an SPDX 3.19 license expression or `null` as an escape hatch, but there is no validation to enforce this specification. Any string value is accepted. Vcpkg's position as a Microsoft-maintained project means many ports in the official repository follow the specification and use SPDX expressions. However, the lack of automated validation means license data quality depends entirely on port maintainer awareness and the code review process, and non-conforming values can be introduced.
+- **Limitations**:
+  - The `license` field is optional, allowing ports without any license metadata.
+  - No validation mechanism—despite the specification requiring SPDX 3.19 expressions or `null` (escape hatch), any string value is accepted, including malformed SPDX expressions, misspellings, or arbitrary text that violates the specification.
+  - The gap between specification (SPDX 3.19 expressions with `null` escape hatch) and enforcement (none) means non-conforming license declarations can exist in the ecosystem.
+  - The `null` escape hatch is appropriate for licenses that cannot be expressed as SPDX, but requires users to manually inspect the copyright file at `/share/<port>/copyright`, providing no structured, machine-readable metadata in the manifest.
+  - No mechanism to systematically audit or improve license metadata quality across all ports or detect specification violations automatically.
+  - The file-based nature of vcpkg (using a GitHub repository rather than a database-backed registry service) makes it difficult to aggregate license information or assess ecosystem-wide compliance with the specification without cloning and parsing the repository.
 
 ### Rust Ecosystem — Cargo
 - **Coverage**: 45.53% of packages in the top 1% have valid SPDX expressions (top 0.1%: insufficient sample size).
@@ -744,6 +822,48 @@ To assess the practical quality and machine-readability of license metadata, we 
 ## 7. Transformation Requirements
 
 To make license information usable across ecosystems, processes must account for the different formats and locations where licenses are declared. The goal is to produce validated SPDX expressions from heterogeneous sources.
+
+### C++ Ecosystem — Conan
+1. Retrieve the `conanfile.py` or `conanfile.txt` from the package source, either by downloading from the repository (e.g., ConanCenter), accessing the local Conan cache (`~/.conan2/p/<package>/`), or checking out the package recipe from a Git repository.
+2. Parse the conanfile to extract the `license` attribute value. For `conanfile.py`, this requires executing or parsing Python code to read the `self.license` attribute. For `conanfile.txt`, parse the INI-style format to find the license line.
+3. Analyze the extracted license string:
+   - If it's a recognizable SPDX identifier (case-insensitive match), normalize it to the correct SPDX format (e.g., "mit" → `MIT`, "apache-2.0" → `Apache-2.0`).
+   - If it appears to be multiple licenses (e.g., "MIT, Apache-2.0", "MIT OR Apache-2.0", "MIT/Apache-2.0"):
+     - Attempt to parse common delimiter patterns (comma, slash, "OR", "AND", "or", "and").
+     - If "OR" or "or" keywords are present, construct an SPDX expression with `OR` operators.
+     - If "AND" or "and" keywords are present, construct an SPDX expression with `AND` operators.
+     - If only delimiters like comma or slash are present, make a conservative assumption based on common dual-licensing patterns (typically `OR`), but flag for manual review.
+   - If the string is free-form text or doesn't match SPDX identifiers, attempt fuzzy matching against the SPDX license list.
+   - If fuzzy matching fails, flag the package for manual review.
+4. If the license field is empty or not present:
+   - Search the package source for common license files (e.g., `LICENSE`, `LICENSE.txt`, `COPYING`, `COPYING.txt`).
+   - Apply a license text scanner (e.g., *scancode-toolkit*) to identify SPDX identifier(s) from the license file content.
+   - If multiple licenses are detected, construct an appropriate SPDX expression based on the scanning results and package context.
+5. Validate the resulting SPDX expression using an SPDX expression parser.
+
+### C++ Ecosystem — Vcpkg
+1. Retrieve the `vcpkg.json` manifest file from the vcpkg ports repository, either by cloning the repository (https://github.com/microsoft/vcpkg), accessing a local vcpkg installation (`<vcpkg-root>/ports/<package>/vcpkg.json`), or fetching it via the GitHub API.
+2. Parse the JSON file and extract the `license` field value.
+3. Check the type of the license field:
+   - If `license` is `null` or missing, proceed to step 5 (license file scanning).
+   - If `license` is a string, proceed to step 4.
+4. Analyze the license string:
+   - The vcpkg specification requires SPDX 3.19 license expressions. Attempt to parse the string as an SPDX 3.19 expression using an SPDX expression parser:
+     - If parsing succeeds, validate that the expression uses only operators and identifiers valid in SPDX 3.19. Use the validated expression.
+     - If parsing fails (malformed expression or uses non-SPDX format), check if it's a valid SPDX identifier without operators.
+   - If the string appears to be a single SPDX identifier (no operators), validate it against the SPDX license list and normalize the case/format if needed.
+   - If the string is free-form text or doesn't conform to SPDX format (specification violation):
+     - Flag the port as non-conforming to the vcpkg specification.
+     - Attempt fuzzy matching against the SPDX license list to map common variations (e.g., "Apache 2.0" → `Apache-2.0`, "BSD 3-Clause" → `BSD-3-Clause`).
+     - If fuzzy matching succeeds, use the matched SPDX identifier but document that the original value violated the specification.
+     - If fuzzy matching fails, flag the package for manual review and proceed to license file scanning as a fallback.
+5. If the license field is `null`, missing, or unresolvable:
+   - If `license` is `null`, this conforms to the specification and represents the escape hatch for licenses that cannot be expressed as SPDX. The copyright file is authoritative. Search for the copyright file at `/share/<port>/copyright` in the installed package.
+   - If `license` is missing or the string was unresolvable, search the installed package directory or source files for common license file names (e.g., `LICENSE`, `LICENSE.txt`, `COPYING`, `copyright`, `COPYING.txt`).
+   - Common locations to search: `<vcpkg-installed>/<triplet>/share/<package>/`, the port's source directory, or within the extracted source tarball.
+   - Apply a license text scanner (e.g., *scancode-toolkit*) to identify SPDX identifier(s) from license file content.
+   - If multiple distinct licenses are found (not just copyright statements), construct an SPDX expression based on the scanning results. Use AND if licenses apply to different components, OR if they represent alternatives.
+6. Validate the resulting SPDX expression using an SPDX 3.19 expression parser.
 
 ### Rust Ecosystem — Cargo
 1. Read the `license` attribute from `Cargo.toml`.
