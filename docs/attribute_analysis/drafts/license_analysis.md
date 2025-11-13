@@ -106,6 +106,51 @@ All of these fields are optional in the specification. The combination of free-f
 **Reference**:
 - [Conda Build — Define Metadata (meta.yaml)](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html)
 
+### Linux Ecosystem — dpkg (Debian/Ubuntu)
+**License Information Available**: Debian packages include license information in the `debian/copyright` file within the source package, using a machine-readable format based on DEP-5 (Debian Enhancement Proposal 5). This file contains `License` fields that specify the license for each set of files in the package.
+
+The machine-readable copyright format includes:
+- `License` field with a short name (e.g., `GPL-2`, `MIT`, `Apache-2.0`, `BSD-3-clause`)
+- Full license text in a separate paragraph below the `License` field
+- Multiple `Files` stanzas for different licensing of different parts of the package
+- Support for combining licenses using operators like `and`, `or`, with parentheses for complex expressions
+
+While Debian encourages the use of common license short names (including SPDX-like identifiers), there is no strict enforcement of SPDX format. The format prioritizes human readability while maintaining machine parseability. The `debian/copyright` file is included in the source package but is also installed at `/usr/share/doc/<package>/copyright` in binary packages.
+
+**Reference**:
+- [Debian Policy Manual — Control files](https://www.debian.org/doc/debian-policy/ch-controlfields.html)
+- [Debian Copyright Format 1.0 (DEP-5)](https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/)
+
+### Linux Ecosystem — rpm (Red Hat/Fedora/SUSE)
+**License Information Available**: RPM packages include a mandatory `License:` tag in the spec file that defines the package license. The spec file is used to build the RPM package and the license metadata is embedded in the resulting binary package.
+
+As of July 2022, Fedora (a major RPM-based distribution) requires the `License:` field to contain an SPDX license expression that includes only Fedora-acceptable licenses. The expression must list all licenses that apply to the package's source code using SPDX operators:
+- `AND` for packages containing code under multiple licenses
+- `OR` for packages offering alternative licensing options
+- `WITH` for license exceptions
+
+Example: `License: MIT AND GPL-2.0-or-later` or `License: Apache-2.0 WITH LLVM-exception`
+
+The actual license text files should be included in the package and marked with the `%license` directive in the `%files` section of the spec file. This ensures license texts are installed at `/usr/share/licenses/<package-name>/`. Other RPM-based distributions (Red Hat Enterprise Linux, CentOS, openSUSE) have varying degrees of SPDX adoption, with some still accepting free-form license strings.
+
+**Reference**:
+- [RPM Packaging Guide — Spec File Format](https://rpm.org/docs/4.20.x/manual/spec.html)
+- [Fedora Licensing Guidelines](https://docs.fedoraproject.org/en-US/legal/license-field/)
+
+### Linux Ecosystem — apk (Alpine Linux)
+**License Information Available**: Alpine Linux packages specify license information in the `license` variable within the `APKBUILD` file (a shell script used to build Alpine packages).
+
+The `license` variable contains a space-separated list of license identifiers. Alpine's conventions include:
+- Use of SPDX license identifiers where possible (e.g., `MIT`, `GPL-2.0-or-later`, `Apache-2.0`)
+- Custom licenses can be specified with the prefix `custom:` followed by a descriptive name (e.g., `custom:Proprietary`)
+- For packages with multiple licenses, all applicable licenses are listed separated by spaces
+
+Alpine policy requires the `license` field to be set for all packages. License files are typically included in the package at `/usr/share/licenses/<pkgname>/`. The APKBUILD metadata is not included in the binary package, but the license information is extracted and stored in the package index.
+
+**Reference**:
+- [Alpine Linux APKBUILD Reference](https://wiki.alpinelinux.org/wiki/APKBUILD_Reference)
+- [Alpine Linux Package Policies](https://wiki.alpinelinux.org/wiki/Creating_an_Alpine_package)
+
 ## 3. Field Analysis
 
 This section groups ecosystems according to how license information can be specified in their package metadata. The focus here is on whether the declaration is unambiguous, ambiguous, or not supported at all, along with the types of definitions that are accepted in practice.
@@ -157,6 +202,16 @@ This section groups ecosystems according to how license information can be speci
 - The `license` field is recommended but not strictly enforced, meaning some formulae may omit license information.
 - The use of Ruby symbol notation and structured hashes provides clear, machine-readable representations of licensing including complex scenarios.
 - Homebrew's approach explicitly supports SPDX identifiers and provides native structures for expressing AND/OR relationships without relying on SPDX expression syntax strings.
+
+#### Linux Ecosystem — rpm (Fedora)
+- **Accepted definitions**:
+  - SPDX license identifiers and expressions (mandatory in Fedora since July 2022)
+  - SPDX operators: `AND`, `OR`, `WITH` for expressing complex licensing scenarios
+  - Example: `MIT AND GPL-2.0-or-later`, `Apache-2.0 WITH LLVM-exception`
+- Fedora strictly requires SPDX expressions in the `License:` field and validates that only Fedora-acceptable licenses are used.
+- The license text files must be included in the package and marked with the `%license` directive.
+- When SPDX expressions are used, the license declaration is unambiguous and machine-readable.
+- **Note**: Other RPM-based distributions (Red Hat Enterprise Linux, CentOS, openSUSE) have varying degrees of SPDX adoption. Some still accept free-form license strings, making the ecosystem as a whole less consistent. However, Fedora's approach represents the strongest and most unambiguous license metadata specification among RPM distributions.
 
 ### Ambiguously specified
 
@@ -212,6 +267,29 @@ This section groups ecosystems according to how license information can be speci
 - The `license_family` field has no official exhaustive list, it accepts any text, with common values used only by convention.
 - There is no support for expressing complex license relationships (AND, OR, WITH) through structured syntax or SPDX expressions.
 - The combination of optional fields, free-form text, and lack of validation means license information can be highly ambiguous, inconsistent, or completely absent across conda packages.
+
+#### Linux Ecosystem — dpkg (Debian/Ubuntu)
+- **Accepted definitions**:
+  - License short names in the `License` field of `debian/copyright` file (e.g., `GPL-2`, `MIT`, `Apache-2.0`, `BSD-3-clause`)
+  - Operators: `and`, `or`, with parentheses for grouping (e.g., `GPL-2 or GPL-3`, `(MIT or BSD-2-Clause) and GPL-2`)
+  - Full license text included in the copyright file below the License field
+  - Multiple Files stanzas with different licenses for different parts of the package
+- While Debian encourages the use of common license short names similar to SPDX identifiers, there is no strict enforcement or validation of SPDX format.
+- The DEP-5 machine-readable format prioritizes human readability while maintaining machine parseability, but allows for variations and free-form text in license names.
+- License names do not have to exactly match SPDX identifiers (e.g., `GPL-2+` is often used instead of `GPL-2.0-or-later`).
+- The format is semi-structured, providing better clarity than pure free-form text but lacking the strict validation that would make it fully unambiguous.
+- The `debian/copyright` file is mandatory for Debian packages, but the quality and accuracy of license declarations depend on maintainer diligence.
+
+#### Linux Ecosystem — apk (Alpine Linux)
+- **Accepted definitions**:
+  - SPDX license identifiers (recommended, e.g., `MIT`, `GPL-2.0-or-later`, `Apache-2.0`)
+  - Space-separated list for packages with multiple licenses
+  - Custom licenses with `custom:` prefix (e.g., `custom:Proprietary`, `custom:CompanyName`)
+- Alpine policy requires the `license` field to be set for all packages, making it mandatory.
+- While SPDX identifiers are encouraged, there is no strict validation or enforcement of SPDX format.
+- The `custom:` prefix provides an escape hatch for non-SPDX licenses but introduces ambiguity since the text after the prefix is free-form.
+- When multiple licenses are listed (space-separated), the relationship between them (AND vs. OR) is not explicitly specified in the format, relying on convention or package documentation.
+- The APKBUILD format does not support SPDX expression operators (AND, OR, WITH), limiting the ability to express complex licensing scenarios unambiguously.
 
 #### Go Ecosystem — Go Modules
 - **Accepted definitions**:
@@ -309,6 +387,24 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in `meta.yaml` files located at the root of conda recipe directories. These recipe files are used during the build process to create conda packages (`.tar.bz2` or `.conda` archives). The resulting package metadata is indexed and made available through Anaconda.org, conda-forge, and other conda channels. When a package is installed, metadata is stored locally but the original `meta.yaml` is not typically included in the installed package itself—it remains in the recipe repository.
 - **Notes**: All license-related fields are optional in the conda-build specification, meaning packages can be built and published without any license information. The free-form nature of both `license` and `license_family` fields, combined with lack of validation, means license information varies widely in format and quality across conda packages. The `license_file` and `license_url` fields provide alternative ways to reference license content but do not improve machine-readability of the license terms themselves.
 
+### Linux Ecosystem — dpkg (Debian/Ubuntu)
+- **Data type**: Machine-readable text format in the `debian/copyright` file following the DEP-5 (Debian Copyright Format 1.0) specification. The file contains structured paragraphs with `License:` fields containing short names and full license text.
+- **License expression support**: Supports expressing multiple licenses using `and`, `or` operators with parentheses for grouping complex expressions (e.g., `GPL-2 or GPL-3`, `(MIT or BSD-2-Clause) and GPL-2`). While similar to SPDX expressions, the format is not identical—Debian uses its own conventions (e.g., `GPL-2+` instead of `GPL-2.0-or-later`).
+- **Location**: The `debian/copyright` file is located in the source package under the `debian/` directory. It is also installed in binary packages at `/usr/share/doc/<package>/copyright`. The file can contain multiple `Files:` stanzas, each with its own `License:` and `Copyright:` fields, allowing different licenses for different parts of the package. License text must be included directly in the copyright file or referenced from `/usr/share/common-licenses/` for well-known licenses.
+- **Notes**: The DEP-5 format is mandatory for Debian packages but not all packages use the fully machine-readable format—some older packages may use prose-style copyright files. The format prioritizes human readability while maintaining machine parseability. License short names are encouraged to match common conventions but there is no strict validation against SPDX or any other standard list.
+
+### Linux Ecosystem — rpm (Red Hat/Fedora/SUSE)
+- **Data type**: String in the `License:` tag of the RPM spec file. In Fedora (since July 2022), this must be a valid SPDX license expression. In other RPM-based distributions, it may be free-form text.
+- **License expression support**: Fedora requires full SPDX expression support with `AND`, `OR`, and `WITH` operators (e.g., `MIT AND GPL-2.0-or-later`, `Apache-2.0 WITH LLVM-exception`). Other RPM distributions have varying degrees of SPDX support—some accept SPDX expressions, others accept free-form license names.
+- **Location**: Declared in the spec file (`.spec`) under the `License:` tag in the package header. The spec file is used to build the RPM package, and the license metadata is embedded in the binary RPM package header as metadata. License text files should be included in the package and installed at `/usr/share/licenses/<package-name>/` using the `%license` directive in the `%files` section. The license metadata is queryable using `rpm -qi <package>` and is accessible through package manager APIs and repositories.
+- **Notes**: The `License:` tag is mandatory in RPM packages. Fedora validates SPDX expressions and requires only Fedora-acceptable licenses. Other RPM-based distributions may have different validation policies or no validation at all. The embedded metadata in the RPM package header ensures license information is always available with the installed package, unlike some other ecosystems where metadata is only in the source.
+
+### Linux Ecosystem — apk (Alpine Linux)
+- **Data type**: String variable `license` in the APKBUILD shell script. Contains a space-separated list of license identifiers.
+- **License expression support**: No support for SPDX expression operators (AND, OR, WITH). Multiple licenses are listed as space-separated identifiers, but the relationship between them (AND vs. OR) is not formally specified. SPDX identifiers are recommended but not enforced. The `custom:` prefix can be used for non-standard licenses (e.g., `custom:Proprietary`).
+- **Location**: Declared in the `APKBUILD` file (a shell script) located in the Alpine package repository. The APKBUILD is not included in the binary package itself. During the build process, license metadata is extracted from the APKBUILD and stored in the package index (APKINDEX). License files are typically included in the package at `/usr/share/licenses/<pkgname>/`. The license metadata is available through the APK package manager (`apk info <package>`), the package index, and Alpine's package search website.
+- **Notes**: The `license` field is mandatory in Alpine Linux packages. While SPDX identifiers are encouraged, there is no validation mechanism. The format is simple but limited—complex licensing scenarios cannot be expressed unambiguously due to the lack of structured operators. The space-separated format is compact but requires convention or documentation to clarify whether multiple licenses represent AND or OR relationships.
+
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
@@ -384,6 +480,24 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: The `conda search <package> --info` command displays package metadata including license information for packages available in configured channels. The `conda list --show-channel-urls` command shows installed packages but does not display license information directly. For installed packages, license metadata can be read from JSON files in the conda environment's `conda-meta/` directory (e.g., `<env>/conda-meta/<package>-<version>-<build>.json`).
 - **Registry access**: Anaconda.org displays license information on package pages when provided by package maintainers. The conda-forge website and individual package pages also show license information extracted from package metadata. However, the display format and availability depend on whether maintainers populated the license fields in their recipes.
 - **API access**: Anaconda.org provides an API for querying package metadata, accessible at endpoints like `https://api.anaconda.org/package/<channel>/<package>`. The API returns JSON including license information when available. The conda channels serve package metadata as JSON through repodata files (e.g., `https://conda.anaconda.org/<channel>/<platform>/repodata.json`), which include license information for packages in that channel. Individual package metadata can also be extracted from downloaded package archives.
+
+### Linux Ecosystem — dpkg (Debian/Ubuntu)
+- **Direct access**: License information is available in the `debian/copyright` file located in the source package under the `debian/` directory. For installed packages, the copyright file is available at `/usr/share/doc/<package>/copyright`. The file can be read directly using standard file tools (`cat`, `less`, etc.).
+- **CLI access**: The `dpkg -L <package> | grep copyright` command can locate the copyright file for installed packages. `apt show <package>` displays package metadata but does not include license information directly. The `apt-file` tool can search for files across packages. License information must be read from the copyright file manually or with custom scripts that parse the DEP-5 format.
+- **Registry access**: The Debian package tracker (https://tracker.debian.org/pkg/<package>) provides links to package information including the copyright file. Ubuntu's Launchpad (https://launchpad.net/ubuntu/+source/<package>) provides similar functionality. The copyright files can be browsed online through package source browsers.
+- **API access**: The Debian API (https://sources.debian.org/src/) and Ubuntu's Launchpad API provide programmatic access to package metadata and source files, including copyright files. The copyright file can be retrieved from package sources via these APIs. Additionally, package repositories serve `.deb` files that can be downloaded and extracted (they are `ar` archives containing control and data tarballs) to access the copyright file at `usr/share/doc/<package>/copyright`.
+
+### Linux Ecosystem — rpm (Red Hat/Fedora/SUSE)
+- **Direct access**: License information is embedded in the RPM package header metadata and is always available with installed packages. The license text files are installed at `/usr/share/licenses/<package-name>/` when packages use the `%license` directive. The spec file (source of license metadata) is typically not included in binary packages but is available in source RPMs (SRPMs).
+- **CLI access**: The `rpm -qi <package>` command displays package information including the `License` field for installed packages. The `dnf info <package>` (Fedora/RHEL) or `yum info <package>` (older systems) or `zypper info <package>` (openSUSE) commands display similar information for both installed and available packages. These commands directly query the RPM database or repository metadata.
+- **Registry access**: Package repository web interfaces display license information parsed from RPM metadata. Examples include Fedora Packages (https://packages.fedoraproject.org/), Red Hat Package Browser, and openSUSE Software portal. These sites display the `License:` field value along with other package metadata.
+- **API access**: Repository metadata is available through repodata XML/SQLite files served by RPM repositories. Tools like `dnf repoquery --info <package>` provide programmatic access to package metadata including licenses. The `rpm` command can also query remote packages via URLs. Third-party services like Repology (https://repology.org/) aggregate package metadata including licenses across multiple RPM-based distributions.
+
+### Linux Ecosystem — apk (Alpine Linux)
+- **Direct access**: License information is stored in the package index (APKINDEX) and embedded in package metadata. For installed packages, the APKBUILD source file (containing the original `license` variable) is not included, but license files are typically installed at `/usr/share/licenses/<pkgname>/`. The package index file can be read from Alpine mirrors.
+- **CLI access**: The `apk info <package>` command displays package information but does not include a dedicated license field in its standard output. The `apk info -L <package>` lists installed files, which can be used to locate license files. The `apk info -w <package>` displays the web URL for the package. License information must typically be retrieved from the package index or Alpine's website.
+- **Registry access**: Alpine's package website (https://pkgs.alpinelinux.org/packages) displays license information for packages, extracted from the APKBUILD metadata. The website provides search and browsing capabilities with license information visible on package detail pages.
+- **API access**: Alpine's package index (APKINDEX) is available as a gzipped text file from Alpine mirrors (e.g., `https://dl-cdn.alpinelinux.org/alpine/<version>/<repository>/<arch>/APKINDEX.tar.gz`). The index can be parsed to extract license metadata for all packages in a repository. The APKINDEX format is a simple key-value text format. Package build files (APKBUILDs) are available in Alpine's aports Git repository (https://gitlab.alpinelinux.org/alpine/aports) where the `license` variable can be read directly.
 
 ## 6. Quality Assessment
 
@@ -522,6 +636,48 @@ To assess the practical quality and machine-readability of license metadata, we 
   - The `meta.yaml` file is not included in distributed packages, only derived metadata, making it difficult to trace the original license declaration or verify its accuracy.
   - Historical packages may have completely missing, inconsistent, or ambiguous license information with no migration path or enforcement of standards.
   - Recipe maintainers may inconsistently populate fields—for example, using only `license` without `license_family`, or vice versa, or using `license_url` instead of including license text directly.
+
+### Linux Ecosystem — dpkg (Debian/Ubuntu)
+- **Coverage**: TBD
+- **Reliability**: Mixed to good. The DEP-5 (Debian Copyright Format 1.0) specification provides a machine-readable structured format that supports complex licensing scenarios with multiple licenses, operators (`and`, `or`), and file-level granularity. Debian policy mandates the `debian/copyright` file and encourages the use of DEP-5 format for new packages. However, reliability varies across the ecosystem because not all packages use the fully machine-readable format—older packages may still use prose-style copyright files that require human interpretation.
+- **Limitations**:
+  - The DEP-5 format is mandatory but not universally adopted—many older packages predate the format or haven't been updated to use it.
+  - Parsing requires handling both DEP-5 machine-readable format and legacy prose-style copyright files, increasing complexity.
+  - License short names used in DEP-5 follow Debian conventions (e.g., `GPL-2+`) rather than strict SPDX identifiers (e.g., `GPL-2.0-or-later`), requiring translation for cross-ecosystem compatibility.
+  - No automated validation of license short names against SPDX or any other standard list—packages may use non-standard abbreviations or variations.
+  - The file-level granularity in DEP-5 (different licenses for different files) means extracting a single "package license" requires interpretation and aggregation logic.
+  - License text can be embedded directly or referenced from `/usr/share/common-licenses/`, requiring tools to handle both cases and potentially access the system filesystem.
+  - Binary packages may have simplified or incomplete copyright files compared to their source packages, reducing metadata quality for installed software.
+  - Quality depends heavily on package maintainer diligence—errors, omissions, or outdated information may persist through multiple package versions.
+
+### Linux Ecosystem — rpm (Red Hat/Fedora/SUSE)
+- **Coverage**: TBD
+- **Reliability**: Strong for Fedora, mixed to weak for other RPM distributions. Since July 2022, Fedora requires valid SPDX license expressions in the `License:` tag and validates them at build time using the `python-license-expression` library. This ensures high reliability and consistency for Fedora packages. However, the broader RPM ecosystem is fragmented—different distributions have different requirements. Red Hat Enterprise Linux (RHEL), CentOS, openSUSE, and others may have varying levels of SPDX adoption, validation, or may still accept free-form license text without validation.
+- **Limitations**:
+  - The `License:` tag is mandatory in all RPM distributions, but content validation varies dramatically by distribution.
+  - Only Fedora enforces SPDX expression validation; other RPM-based distributions may accept arbitrary text without validation.
+  - Fedora additionally restricts licenses to only Fedora-acceptable licenses based on their licensing guidelines, which is stricter than SPDX or other distributions.
+  - Historical packages built before Fedora's 2022 SPDX requirement may contain non-SPDX license strings even in Fedora repositories.
+  - Cross-distribution portability is limited—a package built for Fedora with strict SPDX expressions may not be rebuildable on distributions that don't support SPDX syntax.
+  - Source RPMs (SRPMs) contain the original spec file with license metadata, but binary RPMs embed only the processed `License:` tag value in the header, potentially losing context or spec file comments.
+  - The spec file format allows complex macro expansion and conditionals, making static analysis of license declarations non-trivial without building the package.
+  - License files are recommended to use the `%license` directive but this is not strictly enforced, meaning some packages may not include license text files.
+  - Quality depends on distribution policy and maintainer practices—packages from less-maintained repositories may have outdated, incorrect, or ambiguous license information.
+
+### Linux Ecosystem — apk (Alpine Linux)
+- **Coverage**: TBD
+- **Reliability**: Weak to mixed. The `license` field is mandatory in Alpine Linux APKBUILDs, ensuring that all packages have some license declaration. SPDX identifiers are recommended in Alpine's documentation, and many packages do use them. However, there is no validation mechanism to enforce SPDX identifiers or expressions. The space-separated format used for listing multiple licenses creates ambiguity—the format doesn't distinguish between AND and OR relationships, relying on convention, documentation, or contextual understanding of the software's actual licensing terms.
+- **Limitations**:
+  - The `license` field is mandatory but unvalidated—any text value is accepted, including misspellings, non-standard names, or custom abbreviations.
+  - No support for SPDX expression operators (AND, OR, WITH)—complex licensing relationships cannot be expressed unambiguously.
+  - Multiple licenses are listed as space-separated identifiers, but their relationship (AND vs. OR) is not formally specified, requiring interpretation or external knowledge.
+  - The `custom:` prefix allows arbitrary custom license names, which may not be machine-readable or mappable to known licenses.
+  - SPDX identifiers are recommended but not enforced, leading to inconsistent usage across packages and maintainers.
+  - The APKBUILD is a shell script that must be executed or carefully parsed to extract the `license` variable, which can contain shell variable expansions or complex logic in rare cases.
+  - The APKBUILD is not included in binary packages—license metadata is only in the package index (APKINDEX), which may become unavailable if mirrors are down or repositories are removed.
+  - License files are typically included at `/usr/share/licenses/<pkgname>/` but this is by convention, not enforcement—some packages may not include license text files.
+  - The space-separated format is compact but limited—expressing licenses with exceptions, nested conditions, or file-level variations is not possible.
+  - Quality depends entirely on individual package maintainer knowledge and diligence, with no centralized validation or quality control mechanism.
 
 ## 7. Transformation Requirements
 
@@ -677,3 +833,65 @@ To make license information usable across ecosystems, processes must account for
    - Search the package contents for common license files (`LICENSE`, `LICENSE.txt`, `COPYING`, `COPYING.txt`, etc.) and scan them with a license text scanner.
    - If no license information can be found, flag the package as having no declared or detectable license information.
 8. Validate the resulting SPDX expression using an SPDX parser.
+
+### Linux Ecosystem — dpkg (Debian/Ubuntu)
+1. Retrieve the `debian/copyright` file from the package, either from the source package under `debian/`, from the installed package at `/usr/share/doc/<package>/copyright`, via the Debian API (https://sources.debian.org/src/), or by extracting the `.deb` file.
+2. Determine if the copyright file uses the DEP-5 (Debian Copyright Format 1.0) machine-readable format or legacy prose format:
+   - Check for the `Format:` header field at the beginning of the file. If present with value `https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/` or similar, it's DEP-5 format.
+   - If no `Format:` field is present, it's likely a legacy prose format.
+3. If the file uses DEP-5 format:
+   - Parse the structured format to extract all `Files:` stanzas, each with associated `License:` and `Copyright:` fields.
+   - For each `License:` field value, parse the license expression using Debian's expression syntax (e.g., `GPL-2 or GPL-3`, `(MIT or BSD-2-Clause) and GPL-2`).
+   - Extract the license short name(s) and translate Debian-style license identifiers to SPDX identifiers using a mapping table (e.g., `GPL-2+` → `GPL-2.0-or-later`, `GPL-2` → `GPL-2.0-only`, `Apache-2` → `Apache-2.0`).
+   - If license text is embedded in the copyright file, extract it. If license text is referenced from `/usr/share/common-licenses/`, retrieve the referenced file for validation or scanning if needed.
+   - Aggregate file-level license information into a package-level SPDX expression:
+     - If all files have the same license, use that license.
+     - If files have different licenses, combine them with `AND` to indicate that the package as a whole includes components under multiple licenses.
+     - If files offer license alternatives (using `or` in DEP-5), preserve the `OR` relationships in the SPDX expression.
+4. If the file uses legacy prose format:
+   - Apply natural language processing or pattern matching to extract mentions of license names, URLs, or identifiers.
+   - Search for common license name patterns (e.g., "GNU General Public License version 2", "MIT License", "BSD-style").
+   - Attempt to map extracted text to SPDX identifiers using fuzzy matching or a lookup table.
+   - Flag the package for manual review, as prose format is inherently ambiguous and may require human interpretation.
+   - If extraction is unreliable, search the package contents for common license files (`LICENSE`, `COPYING`, etc.) and scan them with a license text scanner (e.g., *scancode-toolkit*).
+5. Validate the resulting SPDX expression using an SPDX parser.
+
+
+### Linux Ecosystem — rpm (Red Hat/Fedora/SUSE)
+1. Query the RPM package metadata to retrieve the `License:` tag value, either using `rpm -qi <package>` for installed packages, `dnf info <package>` or similar tools for repository packages, by parsing repository metadata (repodata), or by extracting the spec file from a source RPM (SRPM).
+2. Determine the distribution and policy context:
+   - If the package is from Fedora (especially packages built after July 2022), the `License:` value should be a valid SPDX license expression.
+   - If the package is from other RPM-based distributions (RHEL, CentOS, openSUSE, etc.), the `License:` value may be SPDX-compliant, follow older conventions, or be free-form text.
+3. For Fedora packages with SPDX expressions:
+   - Parse the `License:` value directly as an SPDX expression with full support for `AND`, `OR`, and `WITH` operators (e.g., `MIT AND GPL-2.0-or-later`, `Apache-2.0 WITH LLVM-exception`).
+   - Validate the expression using an SPDX expression parser. Fedora's validation at build time means the expression should already be valid, but verification is recommended.
+4. For other RPM-based distributions without guaranteed SPDX compliance:
+   - Attempt to parse the `License:` value as an SPDX expression first.
+   - If parsing fails, check if it's a recognizable license name or identifier using fuzzy matching or a lookup table (e.g., "GPLv2+" → `GPL-2.0-or-later`, "MIT" → `MIT`, "Apache License Version 2.0" → `Apache-2.0`).
+   - If the value contains multiple licenses separated by common patterns (e.g., "GPLv2+ and BSD", "MIT or Apache-2.0"), parse the separators and create an appropriate SPDX expression.
+   - If the value is ambiguous or unrecognizable, flag the package for manual review and attempt to retrieve license text files from `/usr/share/licenses/<package-name>/` to scan with a license text scanner (e.g., *scancode-toolkit*).
+5. For packages where the `License:` tag value cannot be reliably transformed:
+   - Extract the source RPM (SRPM) and inspect the spec file directly for comments or additional context that might clarify the license.
+   - Search the package contents for common license files and scan them with a license text scanner.
+   - Flag the package as requiring manual review and document the original `License:` value for human interpretation.
+6. Validate the resulting SPDX expression using an SPDX parser.
+
+
+### Linux Ecosystem — apk (Alpine Linux)
+1. Retrieve the `license` field value from the package metadata, either by parsing the APKBUILD file from Alpine's aports repository (https://gitlab.alpinelinux.org/alpine/aports), by extracting it from the package index (APKINDEX.tar.gz) available from Alpine mirrors, or via Alpine's package website API.
+2. Parse the space-separated list of license identifiers in the `license` field value.
+3. For each license identifier in the list:
+   - Check if it uses the `custom:` prefix (e.g., `custom:Proprietary`). If so, flag it as a custom license that requires manual review and cannot be directly mapped to SPDX. The license terms must be obtained from the package documentation, vendor website, or included license files.
+   - If it's a standard SPDX identifier (case-sensitive), use it directly (e.g., `MIT`, `Apache-2.0`, `GPL-2.0-or-later`).
+   - If it appears to be an SPDX identifier with case variations or minor formatting differences, normalize it to the correct SPDX format (e.g., `apache-2.0` → `Apache-2.0`).
+   - If it's not a recognized SPDX identifier, attempt fuzzy matching or lookup against common license name variations.
+   - If no match is found, flag the identifier as non-standard and requiring manual review.
+4. Determine the relationship between multiple licenses (AND vs. OR):
+   - Alpine's space-separated format does not specify whether multiple licenses represent AND or OR relationships.
+   - As a heuristic, check the software's official documentation or repository to determine the actual licensing relationship.
+5. If license identifiers are ambiguous or non-standard:
+   - Retrieve license files from the package at `/usr/share/licenses/<pkgname>/` (if available in the installed package) or from the APKBUILD sources.
+   - Apply a license text scanner (e.g., *scancode-toolkit*) to identify the most likely SPDX identifier(s) from the license text.
+   - Use the scanning results to supplement or replace the declared license identifiers.
+6. Construct the SPDX expression using the determined operators (AND or OR) and the mapped SPDX identifiers.
+7. Validate the resulting SPDX expression using an SPDX parser.
