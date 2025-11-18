@@ -187,6 +187,49 @@ The `LICENSE` variable is mandatory for ports. FreeBSD uses its own set of licen
 **Reference**:
 - [FreeBSD Porter's Handbook — Licenses](https://docs.freebsd.org/en/books/porters-handbook/)
 
+### Swift Ecosystem — SwiftPM (Swift Package Manager)
+**License Information Available**: Swift Package Manager (SPM), Apple's official package manager for Swift introduced in 2015, does not provide a dedicated `license` field in the `Package.swift` manifest file.
+
+In practice, package authors typically include a `LICENSE` or `LICENSE.md` file in the root directory of their package repository, containing the full text of the license under which the package is distributed. However, this is a convention rather than a requirement, and the presence, location, and format of license files vary across packages. There is no standardized way to programmatically extract license information from SPM packages through the manifest or package metadata.
+
+Some third-party tools, such as [LicensePlist](https://github.com/mono0926/LicensePlist), attempt to automate the collection of license information by scanning repositories for common license file names and extracting their contents. These tools rely on heuristics and file-based detection rather than structured metadata.
+
+**References**:
+- [Swift Package Manager Documentation](https://swift.org/package-manager/)
+
+### Swift Ecosystem — CocoaPods
+**License Information Available**: CocoaPods is a dependency manager for Swift and Objective-C projects that uses a `Podspec` file to define package metadata. The `Podspec` includes a `license` attribute that allows package authors to specify license information in a structured format.
+
+The `license` attribute accepts either a string (for simple license type declarations) or a hash/dictionary with keys including:
+- `:type` — The license type (e.g., `'MIT'`, `'Apache-2.0'`, `'GPL-3.0'`)
+- `:file` — Path to the license file within the package (e.g., `'LICENSE'`, `'LICENSE.txt'`)
+- `:text` — The full license text as a string (used when no separate license file exists)
+
+Example syntax:
+```
+spec.license = { :type => 'MIT', :file => 'LICENSE' }
+```
+
+The `license` attribute is optional in the Podspec, though it is recommended and widely used. CocoaPods does not validate the license type against SPDX or any other standard list, accepting free-form text.
+
+CocoaPods provides a feature to automatically generate acknowledgements files (via `Pods-acknowledgements.plist` and `Pods-acknowledgements.markdown`) that aggregate license information from all dependencies. These acknowledgements can be integrated into an iOS app's settings bundle, making it easy for developers to comply with license attribution requirements. The accuracy of this aggregated information depends on package authors correctly specifying license details in their Podspec files.
+
+**References**:
+- [CocoaPods Podspec Syntax Reference — license](https://guides.cocoapods.org/syntax/podspec.html#license)
+- [CocoaPods Blog: Acknowledgements](https://blog.cocoapods.org/Acknowledgements/)
+
+### Swift Ecosystem — Carthage
+**License Information Available**: Carthage is a decentralized dependency manager for Swift and Objective-C that takes a minimalist approach to dependency management. Unlike CocoaPods, Carthage does not require or support a centralized metadata file with structured package information. Instead, it relies on Git repository structures, tags, and the presence of Xcode project files or `xcodeproj` schemes.
+
+Carthage's primary configuration file, the `Cartfile`, lists dependency sources (typically Git repository URLs) and version specifications, but contains no fields for license information or other metadata. There is no standardized mechanism within Carthage's tooling or configuration format for specifying, extracting, or validating license information.
+
+Package authors using Carthage typically include a `LICENSE` file in the root of their repository, but this is purely conventional and not enforced or utilized by Carthage itself. Developers using Carthage-managed dependencies are responsible for manually locating and reviewing license files in each dependency's repository to ensure compliance with open-source license requirements.
+
+Some projects have developed external tooling or scripts to scan Carthage-managed dependencies for license files and generate acknowledgements, but these are not part of the core Carthage toolchain and rely on heuristic file detection similar to other ecosystems without structured license metadata.
+
+**Reference**:
+- [Carthage GitHub Repository](https://github.com/Carthage/Carthage)
+
 ## 3. Field Analysis
 
 This section groups ecosystems according to how license information can be specified in their package metadata. The focus here is on whether the declaration is unambiguous, ambiguous, or not supported at all, along with the types of definitions that are accepted in practice.
@@ -370,11 +413,25 @@ This section groups ecosystems according to how license information can be speci
 - FreeBSD's predefined license database provides consistency within the FreeBSD ecosystem, but requires translation to SPDX identifiers for broader interoperability.
 - No support for SPDX WITH operators (license exceptions) through the structured variables, though exceptions could be defined as custom licenses.
 
+#### Swift Ecosystem — CocoaPods
+- **Accepted definitions**:
+  - Free-form string for simple license type declarations (e.g., `spec.license = 'MIT'`)
+  - Hash/dictionary with `:type`, `:file`, and/or `:text` keys:
+    - `:type` — License type as free-form text (e.g., `'MIT'`, `'Apache-2.0'`, `'GPL-3.0'`)
+    - `:file` — Path to license file within the package (e.g., `'LICENSE'`, `'LICENSE.txt'`)
+    - `:text` — Full license text as a string
+- The `license` attribute is optional in podspec files, meaning pods can be published without license information.
+- CocoaPods does not validate license types against SPDX or any other standard list, accepting arbitrary free-form text.
+- There is no support for SPDX expressions with operators (AND, OR, WITH) to express complex licensing scenarios.
+- When a podspec specifies a `:type` field, it typically contains recognizable license names by convention (e.g., `MIT`, `Apache-2.0`), but there is no enforcement of naming consistency.
+- CocoaPods generates acknowledgements files that aggregate license information from all dependencies, but the accuracy depends on correct specification in podspec files.
+- The combination of optional field, free-form text, and lack of validation means license information can be ambiguous or inconsistent across pods.
+
 #### Go Ecosystem — Go Modules
 - **Accepted definitions**:
   - License files such as `LICENSE` located in the module root or subdirectories.
   - License text recognized heuristically by tools such as [`licensecheck`](https://pkg.go.dev/golang.org/x/license) or [`go-licenses`](https://github.com/google/go-licenses), which identify known license patterns in source files.
-- Go’s module tooling (`go` CLI, proxies, and `go.mod`) does not provide a structured field for declaring licenses.
+- Go's module tooling (`go` CLI, proxies, and `go.mod`) does not provide a structured field for declaring licenses.
 - The `.mod` and `.info` files available via the [module proxy protocol](https://go.dev/ref/mod#goproxy-protocol) contain only module and version metadata, not license information.
 - The [`pkg.go.dev`](https://pkg.go.dev/license-policy) service detects license information heuristically using [`licensecheck`](https://pkg.go.dev/golang.org/x/license).
 - Because license detection depends on the presence and content of files rather than explicit declarations, license metadata in Go modules is ambiguous and not consistently machine-readable.
@@ -386,6 +443,23 @@ This section groups ecosystems according to how license information can be speci
   - No formal mechanism for license metadata in Docker images
   - Licensing information is sometimes provided in external documentation, README files, or image repository descriptions as a community practice
 - This absence of structured license declarations makes automated analysis unreliable.
+
+#### Swift Ecosystem — SwiftPM (Swift Package Manager)
+- **Accepted definitions**:
+  - No dedicated `license` field in `Package.swift` manifest
+  - License information typically provided via `LICENSE` or `LICENSE.md` files in repository root by convention
+  - No structured metadata for license declarations
+- SPM does not provide any mechanism for declaring license information in the package manifest.
+- The absence of structured license declarations means there is no reliable, programmatic way to extract license information from SPM packages through their metadata.
+
+#### Swift Ecosystem — Carthage
+- **Accepted definitions**:
+  - No standardized mechanism for license metadata in Carthage
+  - License information typically provided via `LICENSE` files in dependency repositories by convention
+  - No configuration file or manifest with license fields
+- The `Cartfile` lists dependencies (Git URLs and version specifications) but contains no fields for license or other metadata.
+- Developers must manually locate and review `LICENSE` files in each dependency's repository to gather license information.
+- The absence of structured license declarations makes automated license compliance analysis significantly more challenging compared to ecosystems with structured metadata.
 
 ## 4. Data Format Analysis
 
@@ -512,6 +586,26 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in the port's `Makefile` located in the ports tree (e.g., `/usr/ports/category/portname/Makefile`). The Makefile is the source of truth for port metadata during building. License identifiers reference a predefined database (`Mk/bsd.licenses.db.mk`) that provides license names, permissions, and often default license file locations. The `LICENSE_FILE` variable can point to license text files within the port's work directory (extracted from source). The `LICENSE_TEXT` variable can contain license text directly in the Makefile for cases where no separate file exists. License metadata is embedded in the resulting binary package and accessible via `pkg` tools. FreshPorts and other web interfaces display license information parsed from port Makefiles.
 - **Notes**: The `LICENSE` variable is mandatory for all ports. FreeBSD uses its own predefined set of license identifiers rather than strict SPDX identifiers, though many align (e.g., `MIT`) while others differ (e.g., `GPLv2`, `APACHE20`). The `LICENSE_COMB` mechanism provides unambiguous AND/OR semantics for multiple licenses through explicit variable values. However, the non-SPDX naming requires translation for cross-ecosystem use. The `LICENSE_PERMS` variable defines distribution and selling permissions, providing additional metadata not commonly found in other ecosystems. Custom licenses can be fully defined within a port using `LICENSE_NAME`, `LICENSE_TEXT`/`LICENSE_FILE`, and `LICENSE_PERMS`, allowing flexibility beyond the predefined list.
 
+### Swift Ecosystem — SwiftPM (Swift Package Manager)
+- **Data type**: No structured license metadata field in `Package.swift` manifest.
+- **License expression support**: Not applicable—SPM does not provide license metadata fields.
+- **Location**: No formal location for license metadata within SPM's package management infrastructure. License information is conventionally provided via `LICENSE` or `LICENSE.md` files in the package repository root, but this is not part of SPM's metadata system.
+- **Notes**: The absence of license metadata in SPM's manifest and tooling means there is no standardized, programmatic way to retrieve license information for SPM packages. 
+
+### Swift Ecosystem — CocoaPods
+- **Data type**: The `license` attribute in the `Podspec` file accepts either:
+  - A string (e.g., `spec.license = 'MIT'`) for simple license type declarations
+  - A hash/dictionary with keys `:type` (license type string), `:file` (path to license file), and/or `:text` (full license text as string)
+- **License expression support**: No support for SPDX expressions with operators (AND, OR, WITH). Only single license declarations or free-form text are supported.
+- **Location**: Declared in the `Podspec` file at the package repository root (e.g., `PackageName.podspec` or `PackageName.podspec.json` for JSON variant). When a pod is published to the CocoaPods trunk (central repository), the podspec metadata is stored in the Specs repository (https://github.com/CocoaPods/Specs) in a directory structure like `Specs/<initial>/<pod_name>/<version>/<pod_name>.podspec.json`. When pods are installed, CocoaPods generates acknowledgements files (`Pods-acknowledgements.plist` and `Pods-acknowledgements.markdown`) that aggregate license information from all dependencies, making it easy to include in iOS apps' settings bundles. License text files referenced by the `:file` key are typically included in the pod's source and distributed with the pod when installed. The CocoaPods.org website displays license information parsed from podspec files.
+- **Notes**: The `license` attribute is optional, allowing pods to be published without license information. CocoaPods does not validate license types against SPDX or any standard list—any free-form text is accepted. The lack of structured expression support means complex licensing scenarios (AND, OR, exceptions) cannot be represented unambiguously. The acknowledgements generation feature is useful for license compliance, but its accuracy depends entirely on correct specification in podspec files.
+
+### Swift Ecosystem — Carthage
+- **Data type**: No structured license metadata. Carthage does not define metadata fields for license information.
+- **License expression support**: Not applicable—Carthage does not provide license metadata fields.
+- **Location**: No formal location for license metadata within Carthage's dependency management system. Carthage's `Cartfile` lists dependency sources (Git repository URLs) and version specifications but contains no metadata fields.
+- **Notes**: Carthage's minimalist, decentralized philosophy means it provides no infrastructure for license metadata. Developers are responsible for manually tracking and documenting licenses for Carthage-managed dependencies. This makes automated compliance analysis very challenging and relies on manual processes or custom tooling external to Carthage.
+
 ## 5. Access Patterns
 
 Access to license metadata varies across ecosystems. Some make it directly available from the project source or distribution, while others rely on registry infrastructure or provide no access at all.
@@ -629,6 +723,24 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: The `make -C /usr/ports/category/portname -V LICENSE` command displays the license identifier(s) for a port. Similarly, `-V LICENSE_COMB`, `-V LICENSE_FILE`, and other license variables can be queried. For installed packages, the `pkg info <package>` command displays package metadata including licenses. The `pkg query '%L' <package>` command can be used to query specifically the license field. The `pkg` tool queries the local package database for installed packages.
 - **Registry access**: FreshPorts (https://www.freshports.org/) provides a comprehensive web interface for browsing FreeBSD ports, including detailed license information parsed from port Makefiles. Each port page displays the license identifiers, license combination type, and other license-related metadata. The site provides search capabilities and tracks port updates, making it the primary web-based resource for FreeBSD ports information.
 - **API access**: FreshPorts provides RSS feeds and some structured data access, though not a formal REST API. The FreeBSD ports tree itself is the canonical source and can be accessed via Git for programmatic processing. Port Makefiles can be parsed to extract `LICENSE` and related variables. The `pkg` tool supports JSON output for queries (`pkg query --json`), allowing programmatic access to license metadata for installed packages. Binary packages distributed via FreeBSD package repositories include embedded license metadata that can be extracted from downloaded packages.
+
+### Swift Ecosystem — SwiftPM (Swift Package Manager)
+- **Direct access**: No structured license metadata is available in SPM package manifests. License information must be obtained from `LICENSE` or `LICENSE.md` files in package repositories by convention, requiring manual inspection or heuristic file scanning.
+- **CLI access**: SPM's command-line tools (`swift package`, `swift build`) do not provide commands to query or display license information. No native tooling exists to extract license metadata from dependencies.
+- **Registry access**: SPM does not use a centralized package registry (as of late 2024). Packages are distributed directly from Git repositories (typically hosted on GitHub, GitLab, etc.). Repository hosting platforms may display license information detected from license files, but this is repository hosting functionality, not SPM infrastructure.
+- **API access**: No SPM-specific API exists for license metadata. Third-party tools like [LicensePlist](https://github.com/mono0926/LicensePlist) work by cloning package repositories and scanning for license files using heuristics. Programmatic access requires direct interaction with Git repositories and file-based detection.
+
+### Swift Ecosystem — CocoaPods
+- **Direct access**: License information is available in the `Podspec` file (`.podspec` or `.podspec.json`) in the package repository root. The podspec is a plain text file (Ruby DSL or JSON) that can be read directly.
+- **CLI access**: The `pod spec cat <pod>` command displays the podspec for a pod, including the `license` attribute. The `pod try <pod>` command allows exploring a pod locally, where the podspec can be inspected. When pods are installed in a project, CocoaPods generates acknowledgements files (`Pods-acknowledgements.plist` and `Pods-acknowledgements.markdown`) in the `Pods/` directory that aggregate license information from all dependencies.
+- **Registry access**: The CocoaPods website (https://cocoapods.org/) provides a searchable interface for browsing pods, with license information displayed on each pod's page (parsed from the podspec `license` attribute). The site displays license type and links to license files when available.
+- **API access**: The CocoaPods Specs repository (https://github.com/CocoaPods/Specs) contains JSON podspec files for all published pods in a structured directory format (`Specs/<initial>/<pod_name>/<version>/<pod_name>.podspec.json`). These files can be accessed via Git or downloaded directly from GitHub. The CocoaPods trunk API (https://trunk.cocoapods.org/) provides some endpoints for publishing pods and querying metadata, though comprehensive public API documentation is limited. License metadata can be extracted programmatically from podspec JSON files in the Specs repository.
+
+### Swift Ecosystem — Carthage
+- **Direct access**: No structured license metadata is available through Carthage. License information must be obtained manually from `LICENSE` files in dependency repositories.
+- **CLI access**: Carthage's command-line tools (`carthage update`, `carthage build`, etc.) do not provide any functionality for querying or displaying license information. No native tooling exists for license metadata access.
+- **Registry access**: Carthage does not use a centralized registry. Dependencies are specified as Git repository URLs in the `Cartfile`. There is no Carthage-specific web interface or registry infrastructure for browsing packages or license information.
+- **API access**: No Carthage-specific API exists for license metadata. Developers must manually access each dependency's Git repository to locate and read license files. Some projects use custom scripts to scan `Carthage/Checkouts/` (where dependency source repositories are cloned during builds) for license files, but this is entirely external to Carthage and relies on heuristic file detection.
 
 ## 6. Quality Assessment
 
@@ -861,6 +973,42 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Quality depends on port maintainer diligence in selecting appropriate license identifiers from the predefined list and ensuring `LICENSE_FILE` or `LICENSE_TEXT` accurately reflects the actual license.
   - Historical ports may use outdated license identifiers or definitions that haven't been updated to reflect changes in the upstream software's licensing.
   - The ports framework provides excellent structure and consistency within FreeBSD, but its ecosystem-specific conventions create friction when attempting to aggregate or compare license data across multiple package ecosystems.
+
+### Swift Ecosystem — SwiftPM (Swift Package Manager)
+- **Coverage**: Not applicable—SPM does not provide structured license metadata.
+- **Reliability**: Not applicable—no metadata fields exist.
+- **Key limitations**:
+  - Complete absence of structured license metadata in `Package.swift` manifests means no programmatic access to license information through SPM's native tooling.
+  - Developers must rely on convention (presence of `LICENSE` files in repositories) combined with heuristic file detection to gather license information.
+  - No validation, standardization, or enforcement of license information at any stage of the package lifecycle.
+  - Lack of metadata makes automated compliance analysis, SBOM generation, and license auditing significantly more difficult compared to ecosystems with structured license fields.
+  - As SPM packages are distributed via Git repositories, license information quality depends entirely on repository maintainer practices rather than package manager infrastructure or conventions.
+
+### Swift Ecosystem — CocoaPods
+- **Coverage**: TBD
+- **Reliability**: Medium. When present, license information is typically reliable for indicating license type, but quality varies:
+  - Pods with properly specified `:type` and `:file` attributes provide clear, actionable license information.
+  - Some pods only specify `:type` without `:file`, requiring users to locate license files manually in the package source.
+  - Some pods use free-form text in `:type` that may be ambiguous or non-standard.
+- **Key limitations**:
+  - Optional field means pods can be published without license information, creating gaps in coverage.
+  - No validation of license types against SPDX or any standard list—arbitrary text is accepted, leading to inconsistent naming (e.g., `MIT` vs. `MIT License` vs. `The MIT License`).
+  - No support for SPDX expressions with operators (AND, OR, WITH), making complex licensing scenarios impossible to represent unambiguously.
+  - When multiple licenses apply, there is no structured way to indicate the relationship (AND vs. OR)—this must be inferred from free-form text or package documentation.
+  - The acknowledgements generation feature is useful but its accuracy depends entirely on correct specification in podspec files—missing or incorrect `license` attributes result in incomplete or misleading acknowledgements.
+  - Podspec files use Ruby DSL syntax, which requires parsing Ruby code to extract metadata programmatically (though JSON podspec format is also supported and easier to parse).
+  - Quality depends on pod maintainer awareness and diligence in providing accurate license information.
+
+### Swift Ecosystem — Carthage
+- **Coverage**: Not applicable—Carthage does not provide structured license metadata.
+- **Reliability**: Not applicable—no metadata fields exist.
+- **Key limitations**:
+  - Complete absence of license metadata infrastructure means no programmatic access to license information through Carthage's tooling.
+  - Carthage's decentralized, minimalist philosophy explicitly avoids metadata management, leaving license tracking entirely to developers.
+  - Developers must manually inspect each dependency's Git repository to locate license files, making compliance tracking labor-intensive and error-prone.
+  - No validation, standardization, or enforcement of license information at any stage.
+  - Lack of metadata makes automated compliance analysis, SBOM generation, and license auditing extremely challenging.
+  - Carthage's approach places the full burden of license management on application developers rather than providing infrastructure support.
 
 ## 7. Transformation Requirements
 
@@ -1165,3 +1313,69 @@ To make license information usable across ecosystems, processes must account for
    - If the exception is a recognized SPDX exception, construct an SPDX expression with the `WITH` operator (e.g., `GPL-2.0-or-later WITH Classpath-exception-2.0`).
    - If the exception is not a standard SPDX exception, flag it for manual review and document the custom terms.
 6. Validate the resulting SPDX expression using an SPDX parser.
+
+### Swift Ecosystem — SwiftPM (Swift Package Manager)
+1. Recognize that SPM packages do not provide structured license metadata in `Package.swift` manifests. License information must be obtained from repository files.
+2. Clone or access the package's Git repository (the URL is typically specified in the package dependency declaration or package registry).
+3. Search the repository root for common license file names:
+   - `LICENSE`, `LICENSE.md`, `LICENSE.txt`, `COPYING`, `COPYING.txt`, `LICENCE`, `LICENCE.md`
+   - Some packages may place license files in subdirectories or use non-standard names, requiring more extensive scanning.
+4. For each license file found:
+   - Read the file contents.
+   - Apply a license text scanner (e.g., *scancode-toolkit*, [LicensePlist](https://github.com/mono0926/LicensePlist)'s detection engine, or similar) to identify the most likely SPDX identifier(s).
+   - If multiple distinct licenses are detected (not just copyright statements or license headers), determine the relationship:
+     - Check the software's documentation, README, or comments in the license files to understand whether the licenses apply as AND (all apply) or OR (user's choice).
+5. If no license files are found or text scanning fails to identify licenses:
+   - Check the package's README, documentation, or repository metadata (e.g., GitHub repository settings) for license information.
+   - Flag the package as having unclear licensing that requires manual review.
+6. Construct an SPDX expression based on the identified license(s) and their relationship.
+7. Validate the resulting SPDX expression using an SPDX parser.
+
+### Swift Ecosystem — CocoaPods
+1. Retrieve the `Podspec` file for the pod, either from the pod's source repository, from the CocoaPods Specs repository (https://github.com/CocoaPods/Specs), or via the CocoaPods API.
+   - Podspec files are named `<PodName>.podspec` or `<PodName>.podspec.json` (JSON format).
+   - For podspecs, parsing or execution may be required to extract the `license` attribute value.
+   - For JSON podspecs, standard JSON parsing is sufficient.
+2. Extract the `license` attribute value from the podspec:
+   - If the attribute is a string (e.g., `'MIT'`), proceed with this value as the license type.
+   - If the attribute is a hash/dictionary:
+     - Extract the `:type` key value (if present) as the license type.
+     - Note the `:file` key value (if present) as the path to the license file within the pod.
+     - Note the `:text` key value (if present) as the full license text.
+3. If a license type string is available (from string form or `:type` key):
+   - Attempt to match the license type to a known SPDX identifier using exact matching (case-insensitive).
+   - If exact matching fails, use fuzzy matching or a lookup table for common variations (e.g., "The MIT License" → `MIT`, "Apache License 2.0" → `Apache-2.0`, "GPL v3" → `GPL-3.0-only`).
+   - If the license type is already a valid SPDX identifier, use it directly.
+4. If the `:file` or `:text` keys are present (or if license type matching failed):
+   - If `:text` is present, apply a license text scanner (e.g., *scancode-toolkit*) to the provided text to identify SPDX identifier(s).
+   - If `:file` is present, retrieve the license file from the pod's source repository or installed pod directory at the specified path and scan it.
+   - Use the scanning results to identify the SPDX identifier(s).
+5. If no `license` attribute is present in the podspec:
+   - Search the pod's source repository for common license file names (e.g., `LICENSE`, `LICENSE.txt`, `COPYING`).
+   - Apply a license text scanner to identify SPDX identifier(s).
+   - Flag the pod as missing license metadata in its podspec.
+6. If multiple licenses are identified (either from multi-license scanning or from multiple detection methods):
+   - Check the pod's documentation or README to understand the licensing relationship (AND vs. OR).
+   - As a heuristic, if unclear, assume OR for dual-licensing scenarios and flag for manual review.
+7. Construct an SPDX expression based on the identified license(s).
+8. Validate the resulting SPDX expression using an SPDX parser.
+
+### Swift Ecosystem — Carthage
+1. Recognize that Carthage does not provide any structured license metadata. All license information must be obtained from dependency repositories.
+2. For each dependency listed in the `Cartfile`:
+   - Extract the Git repository URL.
+   - Clone or access the repository (Carthage clones repositories to `Carthage/Checkouts/<dependency>` during builds).
+3. For each dependency repository, search for common license file names:
+   - `LICENSE`, `LICENSE.md`, `LICENSE.txt`, `COPYING`, `COPYING.txt`, `LICENCE`, `LICENCE.md`
+   - Check the repository root first, then subdirectories if necessary.
+4. For each license file found:
+   - Read the file contents.
+   - Apply a license text scanner (e.g., *scancode-toolkit*) to identify the most likely SPDX identifier(s).
+   - If multiple distinct licenses are detected, check the repository's README, documentation, or license file comments to determine the relationship (AND vs. OR).
+5. If no license files are found or text scanning fails:
+   - Check the repository's GitHub settings (or equivalent for other hosting platforms) for license information detected by the hosting service.
+   - Check the repository's README or documentation for explicit license statements.
+   - Flag the dependency as having unclear or missing licensing that requires manual review.
+6. For each dependency, construct an SPDX expression based on the identified license(s) and their relationship.
+7. Validate each resulting SPDX expression using an SPDX parser.
+8. Aggregate license information for all Carthage dependencies manually.
