@@ -22,6 +22,12 @@ This section provides an overview of the ecosystems and package managers reviewe
 **Reference**:
 - [vcpkg Reference: vcpkg.json manifest](https://learn.microsoft.com/en-us/vcpkg/reference/vcpkg-json)
 
+### Clojure Ecosystem — Clojars (Leiningen)
+**License Information Available**: Leiningen provides a `:license` key in the `project.clj` file that accepts a map with `:name` and `:url` keys to specify license information. When deploying to Clojars, Leiningen generates a `pom.xml` file that includes the license information in Maven POM format. Clojars uses this POM metadata to display license information. The `:license` field is optional in `project.clj`, and there is no validation of license format or content. The field accepts free-form text for both the name and URL.
+
+**Reference**:
+- [Leiningen Tutorial](https://github.com/technomancy/leiningen/blob/master/doc/TUTORIAL.md)
+
 ### Rust Ecosystem — Cargo
 **License Information Available**: SPDX expression (with escape hatch to provide a license file instead)
 **Reference**: [Cargo Reference: The Manifest Format](https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields)
@@ -263,6 +269,17 @@ This section groups ecosystems according to how license information can be speci
 - When multiple licenses apply, there is no structured way to express the relationship (AND vs. OR)—multiple licenses would typically be listed as comma-separated or otherwise delimited text within the string, making the semantics ambiguous.
 - The lack of validation and optional nature mean license information quality varies significantly across packages, depending on maintainer awareness and diligence.
 
+#### Clojure Ecosystem — Clojars (Leiningen)
+- **Accepted definitions**:
+  - Free-form text in the `:license` map with `:name` and `:url` keys
+  - Multiple licenses can be specified as a vector of maps, but the relationship between them (AND vs. OR) is not formally specified
+- The `:license` field is optional in `project.clj`, allowing projects to be deployed without license information.
+- There is no validation of license format or content—any string can be used for `:name` and `:url`.
+- While the structure (`:name` and `:url`) provides some organization, the lack of standardization means license names can be arbitrary text, descriptive phrases, abbreviations, or SPDX identifiers depending on maintainer preference.
+- Since Leiningen generates Maven POM files for Clojars deployment, the license information follows Maven's structure and inherits similar ambiguity issues (free-form `:name` field, optional `:url`).
+- When multiple licenses are specified, there is no formal indication of their relationship (OR vs. AND), similar to Maven's convention-based interpretation.
+- The lack of validation and optional nature mean license information quality varies significantly across packages, depending on maintainer awareness and adherence to common conventions.
+
 #### Perl Ecosystem — CPAN
 - **Accepted definitions**:
   - License identifiers from a fixed predefined list of common open source licenses (e.g., `perl_5`, `apache_2_0`, `mit`, `gpl_3`, `artistic_2`, `bsd`, `lgpl_3_0`, etc.).
@@ -386,6 +403,12 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in `vcpkg.json` manifest file at the root of the port directory in the centralized vcpkg ports repository on GitHub (e.g., `ports/<package>/vcpkg.json` in https://github.com/microsoft/vcpkg). When vcpkg installs a package, the manifest metadata is stored locally in the vcpkg installation directory. When `license` is `null` (the escape hatch), the copyright file is expected at `/share/<port>/copyright` in the installed package, providing license information for cases where SPDX expressions are insufficient. License text files are typically in the package source and are installed to the package's installation directory. The vcpkg binary cache (when used) includes the package's license files. Unlike package managers with registry services (e.g., ConanCenter, npm registry), vcpkg uses a file-based approach in a GitHub repository rather than a database-backed registry service with web UI and API.
 - **Notes**: The optional `license` field means packages can be created without license information. The gap between the specification (SPDX 3.19 expressions with `null` escape hatch) and reality (no validation, any string accepted) means license data quality varies widely. The `null` escape hatch provides a standardized way to indicate that license information must be obtained from the copyright file, but doesn't provide structured, machine-readable metadata in the manifest itself. The lack of validation means SPDX expressions may be malformed, free-form text may be used, or the field may not conform to the documented specification.
 
+### Clojure Ecosystem — Clojars (Leiningen)
+- **Data type**: Clojure map (hash-map) in the `:license` key of `project.clj`. The map contains `:name` and `:url` keys with string values. Multiple licenses are specified as a vector of maps.
+- **License expression support**: No support for SPDX expressions with operators (AND, OR, WITH). Multiple licenses are listed as separate map entries in a vector, but the relationship between them (AND vs. OR) is not formally specified in the format. By convention, multiple licenses typically represent OR relationships (similar to Maven), but this is not enforced or documented in the format itself.
+- **Location**: Declared in `project.clj` at the project root. When deploying to Clojars, Leiningen generates a `pom.xml` file that includes license information in Maven's `<licenses>` format. The POM file is stored in Clojars' Maven-compatible repository structure. License metadata is displayed on Clojars.org web pages. License text files (e.g., `LICENSE`, `COPYING`) are typically included in the project source and distributed in JARs but are not part of the `project.clj` metadata structure.
+- **Notes**: The optional `:license` field means projects can be deployed without license information. The free-form nature of the `:name` and `:url` fields means license declarations can range from SPDX identifiers to descriptive phrases to arbitrary text. Since Clojars is built on Maven infrastructure, license metadata quality shares similar issues with Maven Central—lack of validation, inconsistent naming, and ambiguous semantics for multiple licenses.
+
 ### Rust Ecosystem — Cargo
 - **Data type**: String containing an SPDX expression.
 - **License expression support**: Accepts both single SPDX identifiers (e.g., `MIT`) and full SPDX expressions (e.g., `MIT OR Apache-2.0`).
@@ -504,6 +527,12 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: The `vcpkg search <package>` command can display package information, though license information may not be shown in the summary output. The manifest file can be read directly using file system commands (e.g., `cat ports/<package>/vcpkg.json`). The `vcpkg list` command shows installed packages but does not display license information in its output. Accessing license metadata typically requires reading the `vcpkg.json` file directly or checking the installed license files.
 - **Registry access**: Vcpkg does not provide a web-based registry service equivalent to ConanCenter, npm registry, or PyPI. Package information is stored in the centralized vcpkg ports repository on GitHub (https://github.com/microsoft/vcpkg). Users can browse the repository online to view `vcpkg.json` files and see license information. Some third-party tools and websites provide searchable interfaces to vcpkg ports, but these are community efforts rather than official Microsoft-provided registry infrastructure.
 - **API access**: Vcpkg does not provide a dedicated REST API for querying package metadata. However, the centralized ports repository can be accessed via GitHub's API to retrieve `vcpkg.json` files programmatically. The vcpkg repository structure is file-based, so package metadata must be extracted by parsing JSON files from the repository. Tools can clone the vcpkg repository and programmatically read manifest files to aggregate license information across ports.
+
+### Clojure Ecosystem — Clojars (Leiningen)
+- **Direct access**: License information is available in the `project.clj` file within the project source. When projects are packaged as JARs, the license metadata is embedded in the generated `pom.xml` file included in the JAR at `META-INF/maven/<group-id>/<artifact-id>/pom.xml`. License text files (e.g., `LICENSE`) are typically included in the project root and distributed in the JAR.
+- **CLI access**: Leiningen itself does not provide a dedicated command to display only license information. The `lein pom` command generates a `pom.xml` file that includes license metadata, which can then be inspected. For installed dependencies, the `pom.xml` files in the local Maven repository (`~/.m2/repository/`) can be read to access license information.
+- **Registry access**: Clojars.org provides a web interface for browsing packages with license information displayed on each package page when available. The license information is extracted from the `pom.xml` metadata generated by Leiningen during deployment.
+- **API access**: Clojars does not provide a dedicated REST API for querying package metadata. However, since Clojars is Maven-compatible, `pom.xml` files can be retrieved directly from the repository using Maven repository URL patterns (e.g., `https://repo.clojars.org/<group-id>/<artifact-id>/<version>/<artifact-id>-<version>.pom`). The Clojars search interface provides some programmatic access, but license-specific queries are limited.
 
 ### Rust Ecosystem — Cargo
 - **Direct access**: License information is available in the `Cargo.toml` file within the source code and redistributed in the `.crate` package.
@@ -643,6 +672,20 @@ To assess the practical quality and machine-readability of license metadata, we 
   - The `null` escape hatch is appropriate for licenses that cannot be expressed as SPDX, but requires users to manually inspect the copyright file at `/share/<port>/copyright`, providing no structured, machine-readable metadata in the manifest.
   - No mechanism to systematically audit or improve license metadata quality across all ports or detect specification violations automatically.
   - The file-based nature of vcpkg (using a GitHub repository rather than a database-backed registry service) makes it difficult to aggregate license information or assess ecosystem-wide compliance with the specification without cloning and parsing the repository.
+
+### Clojure Ecosystem — Clojars (Leiningen)
+- **Coverage**: TBD
+- **Reliability**: Weak. The `:license` field is optional in `project.clj`, allowing projects to be deployed to Clojars without license information. There is no validation of license content—any string can be used for `:name` and `:url`. Since Clojars is built on Maven infrastructure and Leiningen generates Maven POM files, license metadata inherits similar quality issues as Maven Central—free-form text in license names, lack of SPDX validation, and inconsistent declarations across packages.
+- **Limitations**:
+  - The `:license` field is optional, allowing projects without any license metadata to be deployed to Clojars.
+  - No validation mechanism—any string value is accepted for `:name` and `:url`, including misspellings, non-standard names, custom abbreviations, or arbitrary text.
+  - No support for SPDX expressions with structured operators (AND, OR, WITH), making complex licensing scenarios ambiguous.
+  - When multiple licenses are specified as a vector of maps, there is no formal specification of their relationship (OR vs. AND), relying on convention similar to Maven (typically OR).
+  - License name quality varies widely—packages may use SPDX identifiers, descriptive phrases (e.g., "Eclipse Public License"), abbreviations (e.g., "EPL"), URLs, or arbitrary text depending on maintainer awareness.
+  - No centralized validation or quality control mechanism at the Clojars level—license metadata is passed through from `project.clj` to `pom.xml` without validation.
+  - Historical packages may have outdated, incorrect, or completely missing license information with no migration path or enforcement of standards.
+  - The dependency on Leiningen-generated POM files means license metadata quality is constrained by Maven POM limitations and conventions.
+  - No mechanism to systematically audit or improve license metadata quality across the Clojars ecosystem.
 
 ### Rust Ecosystem — Cargo
 - **Coverage**: 45.53% of packages in the top 1% have valid SPDX expressions (top 0.1%: insufficient sample size).
@@ -840,6 +883,25 @@ To make license information usable across ecosystems, processes must account for
    - Apply a license text scanner (e.g., *scancode-toolkit*) to identify SPDX identifier(s) from the license file content.
    - If multiple licenses are detected, construct an appropriate SPDX expression based on the scanning results and package context.
 5. Validate the resulting SPDX expression using an SPDX expression parser.
+
+### Clojure Ecosystem — Clojars (Leiningen)
+1. Retrieve license information from either the `project.clj` file (source) or the generated `pom.xml` file (from Clojars repository or JAR's `META-INF/maven/` directory).
+2. If working with `project.clj`:
+   - Parse the Clojure data structure to extract the `:license` key value.
+   - This may require a Clojure parser or using Leiningen itself to read the project file.
+   - The `:license` value can be a single map or a vector of maps, each with `:name` and `:url` keys.
+3. If working with `pom.xml` (more common for deployed artifacts):
+   - Parse the XML and extract all `<license>` elements within the `<licenses>` section.
+   - For each `<license>` element, extract the `<name>` and `<url>` fields.
+4. For each license `:name` (or `<name>` from POM):
+   - Attempt to match the license name to a known SPDX identifier using fuzzy matching or a lookup table of common variations.
+   - Common Clojure ecosystem licenses include "Eclipse Public License 1.0" → `EPL-1.0`, "EPL" → `EPL-1.0`, "Apache License 2.0" → `Apache-2.0`, "MIT" → `MIT`.
+   - If the name is already an SPDX identifier, use it directly.
+   - If fuzzy matching fails, use the `<url>` or `:url` field (if present and valid) to retrieve the license text and apply a license text scanner (e.g., *scancode-toolkit*) to identify the SPDX identifier.
+   - If both approaches fail, flag the license as unresolvable and retain the original text for manual review.
+5. If multiple licenses are present (vector of maps in `project.clj` or multiple `<license>` elements in POM):
+   - Combine them into an SPDX expression with `OR` operators, following the Maven convention that multiple licenses represent alternatives.
+6. Validate the resulting SPDX expression using an SPDX expression parser.
 
 ### C++ Ecosystem — Vcpkg
 1. Retrieve the `vcpkg.json` manifest file from the vcpkg ports repository, either by cloning the repository (https://github.com/microsoft/vcpkg), accessing a local vcpkg installation (`<vcpkg-root>/ports/<package>/vcpkg.json`), or fetching it via the GitHub API.
