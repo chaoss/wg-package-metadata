@@ -103,6 +103,19 @@ Homebrew/homebrew-core (the main tap) does not accept new formulae without a lic
 - [Homebrew Formula Cookbook](https://docs.brew.sh/Formula-Cookbook)
 - [Homebrew License Guidelines](https://docs.brew.sh/License-Guidelines)
 
+### Haskell Ecosystem — Cabal
+**License Information Available**: Cabal (Common Architecture for Building Applications and Libraries) is the standard package system for Haskell, with Hackage serving as the central package repository. Cabal provides license metadata through the `license` field in the `.cabal` package description file.
+
+Historically (Cabal < 2.2), the `license` field accepted values from a predefined enumeration of common open source licenses (e.g., `BSD3`, `BSD2`, `MIT`, `Apache-2.0`, `GPL-2`, `GPL-3`, `LGPL-2.1`, `LGPL-3`, `ISC`, `MPL-2.0`, `PublicDomain`, `AllRightsReserved`, `OtherLicense`, `UnspecifiedLicense`). This provided standardization but limited flexibility for complex licensing scenarios or licenses not in the predefined list.
+
+Starting with Cabal 2.2 (released 2018), support was added for SPDX license expressions in the `license` field, allowing more precise and flexible license declarations. Modern Cabal packages can use full SPDX license expressions with operators like `AND`, `OR`, and `WITH`. However, many packages still use the older predefined identifiers for backward compatibility.
+
+In addition to the `license` field, Cabal supports the `license-file` field (singular) and `license-files` field (plural) to reference files containing the full license text(s). These files are included in the package distribution. The `license` field is mandatory for all packages published to Hackage, though packages can use `NONE` or `UnspecifiedLicense` if the license is unclear.
+
+**References**:
+- [Cabal Package Description Format](https://cabal.readthedocs.io/en/3.4/cabal-package.html)
+- [Hackage Package Repository](https://hackage.haskell.org/)
+
 ### Perl Ecosystem — CPAN
 **License Information Available**: CPAN (Comprehensive Perl Archive Network) provides a `license` field in the distribution metadata, defined in `META.json` or `META.yml` files following the CPAN::Meta::Spec specification. The `license` field is **mandatory** and must be an array containing at least one element.
 
@@ -298,6 +311,21 @@ This section groups ecosystems according to how license information can be speci
   - Escape hatch: `null` value for licenses that cannot be expressed as SPDX (indicating users must read the deployed `/share/<port>/copyright` file)
 - When the specification is followed (SPDX expressions or `null`), the license declaration is unambiguous and machine-readable. The challenge is that non-conforming values can be introduced due to lack of enforcement.
 - The `license` field is optional in `vcpkg.json`, meaning packages can be created without license information.
+
+#### Haskell Ecosystem — Cabal
+- **Accepted definitions**:
+  - Modern format (Cabal >= 2.2): SPDX license expressions with full operator support (`AND`, `OR`, `WITH`)
+  - Legacy format (Cabal < 2.2): Predefined enumeration of license identifiers (e.g., `BSD3`, `BSD2`, `MIT`, `Apache-2.0`, `GPL-2`, `GPL-3`, `LGPL-2.1`, `LGPL-3`, `ISC`, `MPL-2.0`)
+  - Legacy escape hatches: `PublicDomain`, `AllRightsReserved`, `OtherLicense`
+- The ecosystem is in a transitional state:
+  - Newer packages can use unambiguous SPDX expressions (e.g., `Apache-2.0 OR MIT`, `GPL-3.0-or-later WITH Classpath-exception-2.0`).
+  - Many existing packages still use the older predefined identifiers, which align closely with common license names but are not strictly SPDX identifiers (e.g., `BSD3` vs. `BSD-3-Clause`).
+  - The predefined list was designed to be human-readable and covers the most common open-source licenses, but complex scenarios require either SPDX expressions (newer Cabal) or `OtherLicense` with `license-files` (older Cabal).
+- Ambiguity arises from:
+  - The coexistence of two license field formats (legacy predefined identifiers vs. SPDX expressions) across the package ecosystem.
+  - Packages using `OtherLicense` require reading license files to determine actual licensing.
+  - Legacy identifiers don't exactly match SPDX identifiers, requiring translation (e.g., `BSD3` → `BSD-3-Clause`, `GPL-2` → `GPL-2.0-only`).
+- When SPDX expressions are used (Cabal >= 2.2), the license declaration is unambiguous and machine-readable, but adoption varies across the ecosystem.
 
 ### Ambiguously specified
 
@@ -546,6 +574,16 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in Formula files (`.rb` Ruby scripts) located in Homebrew's formula repositories (homebrew-core, homebrew-cask, and third-party taps). The formula metadata is not embedded in installed packages but is maintained in Git repositories. Homebrew's API and web interface (formulae.brew.sh) serve this metadata. License information is stored in Homebrew's formula repositories and synced to the local system when formulae are updated.
 - **Notes**: The `license` field is required for new formulae in homebrew-core. Formula files must be executed as Ruby code to extract metadata. Homebrew uses standard SPDX identifiers in string format, not Ruby symbol notation.
 
+### Haskell Ecosystem — Cabal
+- **Data type**: The `license` field in the `.cabal` package description file. The data type depends on the Cabal version format:
+  - Legacy format (Cabal < 2.2): Enumeration value from a predefined list (e.g., `BSD3`, `MIT`, `Apache-2.0`, `GPL-3`, `OtherLicense`, `UnspecifiedLicense`)
+  - Modern format (Cabal >= 2.2): String containing an SPDX license expression or a legacy identifier for backward compatibility
+- **License expression support**: 
+  - Legacy format: No support for SPDX expressions. Complex licensing requires using `OtherLicense` with license text in `license-files`.
+  - Modern format (Cabal >= 2.2): Full support for SPDX license expressions with `AND`, `OR`, and `WITH` operators (e.g., `Apache-2.0 OR MIT`, `GPL-3.0-or-later WITH Classpath-exception-2.0`).
+- **Location**: Declared in the `.cabal` package description file at the root of the package source. The `.cabal` file is a human-readable text file with a structured format defining package metadata. When a package is published to Hackage, the `.cabal` file is uploaded along with the package source. The `license-file` (singular) or `license-files` (plural) fields reference license text files that are included in the package tarball (e.g., `LICENSE`, `COPYING`). These files are distributed with the package and installed with it. Hackage provides a web interface and API for browsing and searching packages, including license information.
+- **Notes**: The ecosystem is transitioning from legacy predefined identifiers to SPDX expressions. Legacy identifiers are close to but not exactly SPDX identifiers (e.g., `BSD3` vs. `BSD-3-Clause`), requiring translation for standardized tooling. The mandatory `license` field ensures all packages declare some form of license information, though escape hatches like `OtherLicense` and `UnspecifiedLicense` reduce the usefulness of this requirement.
+
 ### Perl Ecosystem — CPAN
 - **Data type**: JSON or YAML format in `META.json` or `META.yml` files following the CPAN::Meta::Spec. The `license` field is a mandatory array of strings, where each string must be a license identifier from the predefined list or one of the four special values (`open_source`, `restricted`, `unrestricted`, `unknown`).
 - **License expression support**: No support for SPDX expressions or complex licensing scenarios. The array format only supports listing multiple licenses that represent an OR relationship. There is no way to express AND relationships, WITH operators for license exceptions, or other SPDX expression constructs. The predefined license identifiers use underscore notation (e.g., `apache_2_0`, `gpl_3`) rather than SPDX standard identifiers.
@@ -687,6 +725,12 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **CLI access**: The `brew info <formula>` command displays license information along with other formula metadata. The output shows the license value as declared in the formula file. Additionally, `brew info --json=v2 <formula>` provides JSON output including license information for programmatic access.
 - **Registry access**: The formulae.brew.sh website displays license information for each formula. The license is parsed from the formula's `license` attribute and displayed on the formula's page along with other metadata.
 - **API access**: Homebrew provides a JSON API at `https://formulae.brew.sh/api/formula/<formula>.json` that includes license metadata. The API returns structured data including the license field. Formula files can also be accessed directly from GitHub repositories for detailed inspection.
+
+### Haskell Ecosystem — Cabal
+- **Direct access**: License information is available in the `.cabal` package description file at the root of the package source. The `.cabal` file is a plain text file with a structured format that can be read directly. License text files referenced by `license-files` are also included in the package tarball.
+- **CLI access**: The `cabal info <package>` command displays package information including the license field. The Haskell tooling (`cabal-install`, `stack`) can query package metadata locally or from Hackage. The `ghc-pkg` command can display information about installed packages, including license metadata (`ghc-pkg describe <package>`).
+- **Registry access**: Hackage (https://hackage.haskell.org) provides a comprehensive web interface for browsing Haskell packages. Each package page displays the license information parsed from the `.cabal` file. The website provides search capabilities and displays package metadata prominently. Package documentation, dependencies, and license information are all readily accessible through the web interface.
+- **API access**: Hackage provides JSON and other structured data formats for accessing package metadata programmatically. The Hackage API allows querying package information, including license data, via HTTP. The `.cabal` files can be downloaded directly from Hackage for parsing (e.g., `https://hackage.haskell.org/package/<package>/<package>.cabal`). Package tarballs can be downloaded from Hackage and `.cabal` files extracted for local processing. The Cabal library provides Haskell APIs for parsing `.cabal` files programmatically.
 
 ### Perl Ecosystem — CPAN
 - **Direct access**: License information is available in `META.json` or `META.yml` files within the distribution source or the distributed tarball. These files are located at the root of the distribution and can be read directly from the downloaded tarball or from the source repository.
@@ -890,6 +934,22 @@ To assess the practical quality and machine-readability of license metadata, we 
   - License information is maintained separately from installed packages in formula repositories, meaning it can become out of sync if formulae are updated without updating installed software.
   - Third-party taps may have inconsistent or missing license information compared to official Homebrew repositories.
   - Historical formulae may lack license information or use deprecated license identifier formats.
+
+### Haskell Ecosystem — Cabal
+- **Coverage**: TBD
+- **Reliability**: Good to mixed, depending on package age and Cabal version. The mandatory `license` field ensures all packages on Hackage declare some license information. However, reliability varies:
+  - Modern packages using SPDX expressions (Cabal >= 2.2) provide highly reliable, machine-readable license information.
+  - Legacy packages using predefined identifiers (Cabal < 2.2) provide reasonably reliable information, though identifiers require translation to SPDX (e.g., `BSD3` → `BSD-3-Clause`).
+  - Packages using escape hatches (`OtherLicense`) provide minimal or no actionable license information.
+- **Key limitations**:
+  - The ecosystem is in transition between two license field formats (legacy predefined identifiers vs. SPDX expressions), creating heterogeneity across packages.
+  - Legacy predefined identifiers align closely with but don't exactly match SPDX identifiers, requiring translation for standardized tooling.
+  - The `OtherLicense` escape hatch is commonly used for licenses not in the predefined list, forcing consumers to read `license-files` to determine actual licensing—this is less machine-readable than structured metadata.
+  - Older packages may not have been updated to use modern SPDX expressions, even if the package is still actively maintained.
+  - The Cabal specification allows but does not enforce SPDX expressions for newer packages, leading to voluntary rather than mandatory adoption.
+  - Quality depends on package maintainer awareness of SPDX expressions and willingness to update legacy license declarations.
+  - The `.cabal` file format is human-readable and easy to parse, but extracting license information requires understanding the Cabal format or using the Cabal library.
+  - Complex licenses require SPDX expressions (Cabal >= 2.2), but many packages still use `OtherLicense` with text files for legacy compatibility.
 
 ### Perl Ecosystem — CPAN
 - **Coverage**: TBD
@@ -1184,6 +1244,37 @@ To make license information usable across ecosystems, processes must account for
    - Handle arbitrarily nested structures (arrays within hashes, hashes within arrays, license exceptions within complex expressions) by applying these rules recursively.
 6. If no license information is present in the Formula, flag the package as having no declared license.
 7. Validate the resulting SPDX expression using an SPDX parser.
+
+### Haskell Ecosystem — Cabal
+1. Retrieve the `.cabal` package description file from the package, either from the source repository, by downloading the package tarball from Hackage, or via the Hackage API (e.g., `https://hackage.haskell.org/package/<package>/<package>.cabal`).
+2. Parse the `.cabal` file to extract the `license` field value. This requires either:
+   - Using the Cabal library's parsing functions (most reliable method).
+   - Using custom text parsing that understands the `.cabal` file format (key-value pairs with indentation-based structure).
+3. Determine which license format is being used:
+   - If the value is an SPDX expression (contains operators like `OR`, `AND`, `WITH`, parentheses, and SPDX-ids), it's a modern Cabal >= 2.2 format.
+   - If the value is a single identifier from the legacy predefined list (e.g., `BSD3`, `MIT`, `GPL-3`, `OtherLicense`), it's a legacy Cabal < 2.2 format.
+4. For SPDX expressions (Cabal >= 2.2):
+   - Parse the expression directly using an SPDX expression parser.
+   - Validate the expression and use it as-is.
+5. For legacy predefined identifiers (Cabal < 2.2):
+   - Map the legacy identifier to the corresponding SPDX identifier using a translation table:
+     - `BSD3` → `BSD-3-Clause`
+     - `BSD2` → `BSD-2-Clause`
+     - `MIT` → `MIT` (already SPDX)
+     - `Apache-2.0` → `Apache-2.0` (already SPDX)
+     - `GPL-2` → `GPL-2.0-only`
+     - `GPL-3` → `GPL-3.0-only`
+     - `LGPL-2.1` → `LGPL-2.1-only`
+     - `LGPL-3` → `LGPL-3.0-only`
+     - `ISC` → `ISC` (already SPDX)
+     - `MPL-2.0` → `MPL-2.0` (already SPDX)
+     - `PublicDomain` → Requires manual review
+   - If the identifier is `OtherLicense`:
+     - Extract the `license-files` or `license-file` field value from the `.cabal` file.
+     - Retrieve the referenced license file(s) from the package source or tarball.
+     - Apply a license text scanner (e.g., *scancode-toolkit*) to identify the SPDX identifier(s).
+     - If scanning succeeds, use the identified SPDX identifier.
+6. Validate the resulting SPDX expression using an SPDX parser.
 
 ### Perl Ecosystem — CPAN
 1. Retrieve the `META.json` or `META.yml` file from the distribution, either from the source repository, by downloading and extracting the distribution tarball from CPAN, or via the MetaCPAN API.
