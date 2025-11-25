@@ -75,6 +75,8 @@ Composer validates license values against the SPDX list using the [`composer/spd
 
 While the POM.xml specification itself does not mandate license fields, Maven Central enforces additional publication requirements. To publish to Maven Central, the `<licenses>` section is required, and each `<license>` element must include both `<name>` and `<url>` fields. Maven Central does not validate whether the provided license information conforms to SPDX standards or any specific format beyond the presence of these required fields.
 
+In addition to the structured POM metadata, Java artifacts commonly include license and NOTICE files embedded at `META-INF/LICENSE` and `META-INF/NOTICE` (with optional file extensions). These files contain the full license text and attribution notices, and are always present in Apache Software Foundation projects.
+
 **References**:
 - [Maven POM Reference — licenses section](https://maven.apache.org/pom.html)
 - [Maven Central publication requirements](https://central.sonatype.org/publish/requirements/#required-pom-metadata)
@@ -703,10 +705,10 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **API access**: The Packagist API exposes license information for each package version through its JSON endpoint, for example `https://repo.packagist.org/p/<vendor>/<package>.json`.
 
 ### Java Ecosystem — Maven Central
-- **Direct access**: License information is available in the `pom.xml` file within the project source code. The POM file is also embedded within published artifacts (JAR, WAR, etc.) at `META-INF/maven/<groupId>/<artifactId>/pom.xml`, and is distributed as a separate `.pom` artifact alongside the main artifact.
+- **Direct access**: License information is available in the `pom.xml` file within the project source code. The POM file is usually embedded within published artifacts (JAR, WAR, etc.) at `META-INF/maven/<groupId>/<artifactId>/pom.xml`. Projects built by the Maven JAR or Maven WAR plugins embed the POM file, but other build systems (e.g., Gradle) may not. Additionally, a copy of the license and NOTICE files is often embedded as `META-INF/LICENSE<optional_extension>` and `META-INF/NOTICE<optional_extension>`. These artifacts are always present in ASF (Apache Software Foundation) projects and streamlined by the Apache JAR Resource Bundle.
 - **CLI access**: The `mvn dependency:tree -Dverbose` can be used to list resolved dependencies and combined with POM inspection, though Maven does not provide a dedicated command to display only license information.
-- **Registry access**: Maven Central's web interface at `https://central.sonatype.com` and legacy search at `https://search.maven.org` display license information on package pages, parsed from the POM metadata.
-- **API access**: POM files can be retrieved directly from Maven Central using the repository URL pattern `https://repo1.maven.org/maven2/<groupId-as-path>/<artifactId>/<version>/<artifactId>-<version>.pom`. Maven Central also provides a REST API for searching artifacts, though license-specific queries are limited. Third-party services like MVNRepository (`https://mvnrepository.com`) provide additional search and API capabilities for license information.
+- **Registry access**: Maven Central's usual repository URL is `https://repo.maven.apache.org/maven2/` (defined in the Super POM and used as the default for the maven PURL type). Web interfaces at `https://central.sonatype.com` and legacy search at `https://search.maven.org` display license information on package pages, parsed from the POM metadata.
+- **API access**: POM files can be retrieved directly from Maven Central using the repository URL pattern `https://repo.maven.apache.org/maven2/<groupId-as-path>/<artifactId>/<version>/<artifactId>-<version>.pom`. Maven Central also provides a REST API for searching artifacts, though license-specific queries are limited. Third-party services like MVNRepository (`https://mvnrepository.com`) provide additional search and API capabilities for license information.
 
 ### .NET Ecosystem — NuGet
 - **Direct access**: License information is available in the `.nuspec` file within the package source code and at the root of the downloaded `.nupkg` package file. When `type="file"` is used, the license file is also included in the package at the specified path.
@@ -1100,6 +1102,7 @@ To make license information usable across ecosystems, processes must account for
    - The `:license` value can be a single map or a vector of maps, each with `:name` and `:url` keys.
 3. If working with `pom.xml` (more common for deployed artifacts):
    - Parse the XML and extract all `<license>` elements within the `<licenses>` section.
+   - If `<licenses>` is missing or empty, retrieve the parent POM (following Maven Model Builder's "inheritance assembly" process) and extract the `<license>` elements from the parent's `<licenses>` section.
    - For each `<license>` element, extract the `<name>` and `<url>` fields.
 4. For each license `:name` (or `<name>` from POM):
    - Attempt to match the license name to a known SPDX identifier using fuzzy matching or a lookup table of common variations.
@@ -1182,13 +1185,14 @@ To make license information usable across ecosystems, processes must account for
 ### Java Ecosystem — Maven Central
 1. Retrieve the POM file from the artifact, either from the source repository, from within the published artifact at `META-INF/maven/<groupId>/<artifactId>/pom.xml`, or directly from Maven Central using the repository URL pattern.
 2. Parse the XML and extract all `<license>` elements within the `<licenses>` section.
-3. For each `<license>` element, extract the `<name>` field content.
+3. If `<licenses>` is missing or empty, retrieve the parent POM (following Maven Model Builder's "inheritance assembly" process) and extract the `<license>` elements from the parent's `<licenses>` section.
+4. For each `<license>` element, extract the `<name>` field content.
    - Attempt to match the license name to a known SPDX identifier using fuzzy matching or a lookup table of common variations (e.g., "Apache License 2.0" → `Apache-2.0`, "MIT License" → `MIT`).
    - If the `<name>` field is already an SPDX identifier, use it directly.
    - If fuzzy matching fails, use the `<url>` field (if present and valid) to retrieve the license text and apply a license text scanner (e.g., *scancode-toolkit*) to identify the SPDX identifier.
    - If both approaches fail, flag the license as unresolvable and retain the original free-form text for manual review.
-4. If multiple `<license>` elements are present, combine them into an SPDX expression with `OR` operators, reflecting the conventional interpretation that the software may be used under any of the listed licenses.
-5. Validate the resulting SPDX expression using an SPDX parser.
+5. If multiple `<license>` elements are present, combine them into an SPDX expression with `OR` operators, reflecting the conventional interpretation that the software may be used under any of the listed licenses.
+6. Validate the resulting SPDX expression using an SPDX parser.
 
 ### .NET Ecosystem — NuGet
 1. Retrieve the `.nuspec` file from the package, either from the source repository, by downloading the `.nupkg` file from NuGet.org and extracting it (it's a ZIP archive), or via the NuGet API.
