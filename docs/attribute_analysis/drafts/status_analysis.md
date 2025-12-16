@@ -599,13 +599,29 @@ As of April 2024, RubyGems set a provisional limit on gems that can be yanked wi
 
 ### Repository-Derived Status Signals
 
-For package managers that use source repositories (especially GitHub) as their primary source, repository metadata can provide status signals that the registry itself may not track.
+For package managers that use source repositories as their primary source, repository metadata can provide status signals that the registry itself may not track.
 
 **GitHub Repository Status Fields**:
 - `archived`: Boolean indicating the repository is read-only and no longer actively maintained
 - `disabled`: Repository has been disabled (rare, typically due to ToS violations)
 - `visibility`: Repository may have been made private or deleted entirely (404 response)
 - `description`: May contain deprecation notices like "DEPRECATED", "No longer maintained", "Use X instead"
+- `topics`: Array of topic strings, may include "deprecated", "unmaintained", "archived"
+- **API**: `GET https://api.github.com/repos/{owner}/{repo}`
+
+**GitLab Project Status Fields**:
+- `archived`: Boolean indicating the project is in read-only mode
+- `visibility`: `public`, `internal`, or `private`
+- `description`: May contain deprecation notices
+- `topics`: Array of topic strings (replaces deprecated `tag_list`)
+- **API**: `GET https://gitlab.com/api/v4/projects/{id}`
+
+**Gitea/Forgejo Repository Status Fields**:
+- `archived`: Boolean (`is_archived` in database) indicating read-only mode
+- `description`: May contain deprecation notices
+- **API**: `GET https://{instance}/api/v1/repos/{owner}/{repo}` (e.g., codeberg.org, gitea.com)
+- **Behavior**: Archived repositories allow viewing and cloning but prevent pushes, issues, and pull requests
+- **Note**: Forgejo is a fork of Gitea; Codeberg runs Forgejo. APIs are compatible.
 
 **Ecosystems heavily dependent on repository status**:
 
@@ -626,20 +642,42 @@ Beyond structured metadata, deprecation signals may appear in:
 - **Latest commit messages**: May indicate final/archival commits
 - **Topics/tags**: Some projects add "deprecated", "unmaintained", or "archived" topics
 
-**GitHub API access**:
+**Forge API examples**:
 
-Repository metadata is available via the GitHub API:
+GitHub:
 ```
 GET https://api.github.com/repos/{owner}/{repo}
 ```
-
-Response includes:
 ```json
 {
   "archived": true,
   "disabled": false,
   "description": "DEPRECATED: Use new-package instead",
   "topics": ["deprecated", "unmaintained"]
+}
+```
+
+GitLab:
+```
+GET https://gitlab.com/api/v4/projects/{id}
+```
+```json
+{
+  "archived": true,
+  "visibility": "public",
+  "description": "DEPRECATED: Use new-package instead",
+  "topics": ["deprecated"]
+}
+```
+
+Gitea/Forgejo:
+```
+GET https://{instance}/api/v1/repos/{owner}/{repo}
+```
+```json
+{
+  "archived": true,
+  "description": "DEPRECATED: Use new-package instead"
 }
 ```
 
