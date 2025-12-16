@@ -58,7 +58,9 @@ Package status metadata indicates whether a package or specific version is activ
 
 ### Ruby Ecosystem - RubyGems
 
-**Status Information Available**: Version yanking via CLI and API; 2024 policy restricts yanking for gems over 100k downloads or older than 30 days
+**Status Information Available**: Version yanking via CLI and API write endpoint, but yanked status is not exposed in read APIs; 2024 policy restricts yanking for gems over 100k downloads or older than 30 days
+
+**Notes**: The RubyGems API provides a `DELETE /api/v1/gems/yank` endpoint to yank versions, but the versions read API (`/api/v1/versions/{name}.json`) does not include a `yanked` field. Yanked versions are omitted from version listings but can still be installed if the exact version is specified (e.g., in a Gemfile.lock). This matches Cargo/PyPI behavior but without exposing the yanked status, making it impossible to distinguish "never existed" from "was yanked" via the API.
 
 **References**:
 - [RubyGems API](https://guides.rubygems.org/rubygems-org-api/)
@@ -530,7 +532,7 @@ Alternative abandoned values:
 | Packagist | Yes (abandoned) | No | No | Yes | Yes |
 | Pub | Yes (isDiscontinued) | No | No | No | Yes |
 | NuGet | No | Yes (deprecated, unlisted) | Yes (message field) | Yes (alternatePackage) | Yes |
-| RubyGems | No | Yes (yank) | No | No | Yes |
+| RubyGems | No | Write-only (yank not exposed in read API) | No | No | Yes |
 | Hex | No | Yes (retirement) | Yes (message, required) | Via "renamed" reason | Yes |
 | OpenVSX | No | Yes (downloadable) | No | No | Unknown |
 | Homebrew | Yes (deprecated, disabled) | No | Yes (reason symbols) | Yes (replacement fields) | Yes |
@@ -541,8 +543,8 @@ Alternative abandoned values:
 ### Limitations
 
 **Inconsistent terminology**: Registries use different terms for similar concepts:
-- "yanked" (Cargo, PyPI, RubyGems)
-- "deprecated" (npm)
+- "yanked" (Cargo, PyPI; RubyGems uses the term but doesn't expose status in API)
+- "deprecated" (npm, NuGet)
 - "retracted" (Go)
 - "retired" (Hex)
 - "unlisted" (NuGet)
