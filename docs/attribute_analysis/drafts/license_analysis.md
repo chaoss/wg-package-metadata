@@ -33,7 +33,7 @@ This section provides an overview of the ecosystems and package managers reviewe
 **Reference**: [Cargo Reference: The Manifest Format](https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields)
 
 ### Python Ecosystem — PyPI (pip)
-**License Information Available**: SPDX expression (in Python > 3.17), with ambiguous alternatives retained for backward compatibility
+**License Information Available**: SPDX license expressions per PEP 639 (Core Metadata 2.4 and supporting build tools), with ambiguous alternatives retained for backward compatibility
 
 **References**:
 - [Python Packaging User Guide — Dependency Specifiers](https://packaging.python.org/en/latest/specifications/dependency-specifiers/#dependency-specifiers)
@@ -388,7 +388,7 @@ This section groups ecosystems according to how license information can be speci
 
 #### Python Ecosystem — PyPI (pip)
 - **Accepted definitions**:
-  - SPDX identifiers and expressions (supported in Python > 3.17)
+  - SPDX identifiers and expressions (per PEP 639; Core Metadata 2.4 and supporting build tools)
   - Free-form strings (e.g., "MIT License", "BSD-style")
   - Copy-paste of license text blocks
   - Historical community conventions where classifiers in `setup.py` or metadata loosely indicated license type
@@ -522,7 +522,7 @@ License metadata is not only expressed in different formats, but also stored in 
 ### Python Ecosystem — PyPI (pip)
 - **Data type**: String without enforced structure.
 - **License expression support**:
-  - Modern metadata (Python > 3.17) supports SPDX identifiers and expressions.
+  - PEP 639 and Core Metadata 2.4 support SPDX identifiers and expressions in project metadata and built distributions.
   - Legacy metadata allows arbitrary free-form strings, from license names (“MIT License”) to pasted license text.
 - **Location**: Declared in project configuration files (`pyproject.toml`, `setup.cfg`, `setup.py`). These declarations may or may not be preserved in the built distribution (`wheel` or `sdist`). The PyPI registry surface (web and API) is the most consistent place to retrieve license metadata, but ambiguity remains due to mixed formats.
 - **Notes**: Because both SPDX and free-style values are still allowed, license information is not uniformly reliable across packages.
@@ -574,7 +574,7 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Data type**: Formula files are Ruby scripts (DSL) that define package specifications. The `license` method accepts: SPDX identifier strings (e.g., `"MIT"`, `"Apache-2.0"`), special symbols (`:public_domain`, `:cannot_represent`), arrays for multiple licenses, hashes with `any_of:` or `all_of:` keys for complex expressions, and hash syntax for license exceptions (`"License" => { with: "Exception" }`).
 - **License expression support**: Full native support for SPDX license expressions through structured Ruby data types based on the SPDX License Expression Guidelines. The `any_of:` hash key represents OR relationships, `all_of:` represents AND relationships, and the hash syntax `"License" => { with: "Exception" }` represents SPDX WITH operators for license exceptions (e.g., `"Apache-2.0" => { with: "LLVM-exception" }`). These structures can be arbitrarily nested to express any valid SPDX license expression. Version operators (`+`, `-only`, `-or-later`) are supported directly in license identifier strings.
 - **Location**: Declared in Formula files (`.rb` Ruby scripts) located in Homebrew's formula repositories (homebrew-core, homebrew-cask, and third-party taps). The formula metadata is not embedded in installed packages but is maintained in Git repositories. Homebrew's API and web interface (formulae.brew.sh) serve this metadata. License information is stored in Homebrew's formula repositories and synced to the local system when formulae are updated.
-- **Notes**: The `license` field is required for new formulae in homebrew-core. Formula files must be executed as Ruby code to extract metadata. Homebrew uses standard SPDX identifiers in string format, not Ruby symbol notation.
+- **Notes**: The `license` field is required for new formulae in homebrew-core. Formula files must be executed as Ruby code to extract metadata. License identifiers are typically given as Ruby strings (e.g., `"MIT"`, `"Apache-2.0"`); the expression structure uses Ruby symbols for keys (`any_of:`, `all_of:`) and for special values (`:public_domain`, `:cannot_represent`). Legacy use of symbols for license IDs (e.g., `:mit`) has largely been phased out in favor of string identifiers.
 
 ### Haskell Ecosystem — Cabal/Hackage
 - **Data type**: The `license` field in the `.cabal` package description file. The data type depends on the Cabal version format:
@@ -705,7 +705,7 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **API access**: The Packagist API exposes license information for each package version through its JSON endpoint, for example `https://repo.packagist.org/p/<vendor>/<package>.json`.
 
 ### Java Ecosystem — Maven Central
-- **Direct access**: License information is available in the `pom.xml` file within the project source code. The POM file is usually embedded within published artifacts (JAR, WAR, etc.) at `META-INF/maven/<groupId>/<artifactId>/pom.xml`. Projects built by the Maven JAR or Maven WAR plugins embed the POM file, but other build systems (e.g., Gradle) may not. Additionally, a copy of the license and NOTICE files is often embedded as `META-INF/LICENSE<optional_extension>` and `META-INF/NOTICE<optional_extension>`. These artifacts are always present in ASF (Apache Software Foundation) projects and streamlined by the Apache JAR Resource Bundle.
+- **Direct access**: License information is available in the `pom.xml` file within the project source code. The POM file is also distributed as a separate `.pom` artifact alongside the main artifact on Maven Central. When the project is built with the Maven JAR or Maven WAR plugins, the POM is embedded within published artifacts (JAR, WAR, etc.) at `META-INF/maven/<groupId>/<artifactId>/pom.xml`; other build systems (e.g., Gradle) typically do not embed it. Additionally, a copy of the license and NOTICE files is often embedded as `META-INF/LICENSE<optional_extension>` and `META-INF/NOTICE<optional_extension>`. These artifacts are standard in ASF (Apache Software Foundation) projects when built with Maven and are streamlined by the Apache JAR Resource Bundle; some ASF projects use other build systems (e.g., Gradle) and may not embed the POM or META-INF/LICENSE.
 - **CLI access**: The `mvn dependency:tree -Dverbose` can be used to list resolved dependencies and combined with POM inspection, though Maven does not provide a dedicated command to display only license information.
 - **Registry access**: Maven Central's usual repository URL is `https://repo.maven.apache.org/maven2/` (defined in the Super POM and used as the default for the maven PURL type). Web interfaces at `https://central.sonatype.com` and legacy search at `https://search.maven.org` display license information on package pages, parsed from the POM metadata.
 - **API access**: POM files can be retrieved directly from Maven Central using the repository URL pattern `https://repo.maven.apache.org/maven2/<groupId-as-path>/<artifactId>/<version>/<artifactId>-<version>.pom`. Maven Central also provides a REST API for searching artifacts, though license-specific queries are limited. Third-party services like MVNRepository (`https://mvnrepository.com`) provide additional search and API capabilities for license information.
@@ -720,7 +720,7 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **Direct access**: License information is available in the `.gemspec` file within the gem's source code. The `.gemspec` metadata is also embedded within the `.gem` package file (tar archive) when distributed. License files are typically included in the gem package root directory but this is not enforced.
 - **CLI access**: The `gem specification <gem-name> license` command displays the license field value for installed gems. 
 - **Registry access**: RubyGems.org displays license information on each gem's page. The information shown is extracted from the `license` or `licenses` fields in the gem's metadata.
-- **API access**: The RubyGems API provides license metadata through multiple endpoints. The Gems API (`https://rubygems.org/api/v2/runygems/<gem-name>/versions/<version>.json`) returns gem metadata including the `licenses` field as an array. Individual gem version data can also be retrieved. The `.gem` file can be downloaded and the `.gemspec` extracted programmatically to access full metadata including license information.
+- **API access**: The RubyGems API provides license metadata through multiple endpoints. The Gems API (`https://rubygems.org/api/v2/rubygems/<gem-name>/versions/<version>.json`) returns gem metadata including the `licenses` field as an array. Individual gem version data can also be retrieved. The `.gem` file can be downloaded and the `.gemspec` extracted programmatically to access full metadata including license information.
 
 ### macOS Ecosystem — Homebrew
 - **Direct access**: License information is available in Formula files (`.rb` Ruby scripts) stored in Homebrew's formula repositories on GitHub (e.g., homebrew-core, homebrew-cask). These repositories can be cloned or browsed directly. The formula files are also synced locally when running `brew update`.
@@ -855,7 +855,7 @@ To assess the practical quality and machine-readability of license metadata, we 
 ### Python Ecosystem — PyPI (pip)
 - **Coverage**: 60.29% of packages in the top 1% have valid SPDX expressions (top 0.1%: 58.06%).
 - **Reliability**: Weak to mixed.
-  - Newer projects (Python > 3.17, setuptools ≥ 66.0) can use SPDX identifiers and expressions, making license data machine-readable.
+  - Newer projects using PEP 639 metadata (Core Metadata 2.4) and supporting build tools can use SPDX identifiers and expressions, making license data machine-readable.
   - Older projects often use free-form text or inconsistent naming ("BSD-style", "GPLv2 or later"), which complicates parsing.
   - The relatively consistent coverage across both samples (~58-60%) indicates that license metadata practices are uniform across popularity levels.
 - **Limitations**:
@@ -1184,8 +1184,8 @@ To make license information usable across ecosystems, processes must account for
 
 ### Java Ecosystem — Maven Central
 1. Retrieve the POM file from the artifact, either from the source repository, from within the published artifact at `META-INF/maven/<groupId>/<artifactId>/pom.xml`, or directly from Maven Central using the repository URL pattern.
-2. Parse the XML and extract all `<license>` elements within the `<licenses>` section.
-3. If `<licenses>` is missing or empty, retrieve the parent POM (following Maven Model Builder's "inheritance assembly" process) and extract the `<license>` elements from the parent's `<licenses>` section.
+2. Resolve the effective POM for license data, taking the Maven Model Builder into account: if `<licenses>` is missing or empty in the current POM, retrieve the parent POM (following the Model Builder's "inheritance assembly" process) and use it for the following steps.
+3. Extract all `<license>` elements within the `<licenses>` section (from the current POM or the parent, as resolved in the previous step).
 4. For each `<license>` element, extract the `<name>` field content.
    - Attempt to match the license name to a known SPDX identifier using fuzzy matching or a lookup table of common variations (e.g., "Apache License 2.0" → `Apache-2.0`, "MIT License" → `MIT`).
    - If the `<name>` field is already an SPDX identifier, use it directly.
