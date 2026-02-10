@@ -1,0 +1,18 @@
+[project]
+name = "wg-package-metadata-tools"
+version = "0.1.0"
+description = "Data processing tools for package metadata analysis"
+requires-python = ">=3.13"
+dependencies = [
+    "pandas>=2.2.0",
+    "license-expression>=30.3.0",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
