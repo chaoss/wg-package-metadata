@@ -105,7 +105,7 @@ Homebrew/homebrew-core (the main tap) does not accept new formulae without a lic
 - [Homebrew Formula Cookbook](https://docs.brew.sh/Formula-Cookbook)
 - [Homebrew License Guidelines](https://docs.brew.sh/License-Guidelines)
 
-### Haskell Ecosystem — Cabal
+### Haskell Ecosystem — Cabal/Hackage
 **License Information Available**: Cabal (Common Architecture for Building Applications and Libraries) is the standard package system for Haskell, with Hackage serving as the central package repository. Cabal provides license metadata through the `license` field in the `.cabal` package description file.
 
 Historically (Cabal < 2.2), the `license` field accepted values from a predefined enumeration of common open source licenses (e.g., `BSD3`, `BSD2`, `MIT`, `Apache-2.0`, `GPL-2`, `GPL-3`, `LGPL-2.1`, `LGPL-3`, `ISC`, `MPL-2.0`, `PublicDomain`, `AllRightsReserved`, `OtherLicense`, `UnspecifiedLicense`). This provided standardization but limited flexibility for complex licensing scenarios or licenses not in the predefined list.
@@ -314,7 +314,7 @@ This section groups ecosystems according to how license information can be speci
 - When the specification is followed (SPDX expressions or `null`), the license declaration is unambiguous and machine-readable. The challenge is that non-conforming values can be introduced due to lack of enforcement.
 - The `license` field is optional in `vcpkg.json`, meaning packages can be created without license information.
 
-#### Haskell Ecosystem — Cabal
+#### Haskell Ecosystem — Cabal/Hackage
 - **Accepted definitions**:
   - Modern format (Cabal >= 2.2): SPDX license expressions with full operator support (`AND`, `OR`, `WITH`)
   - Legacy format (Cabal < 2.2): Predefined enumeration of license identifiers (e.g., `BSD3`, `BSD2`, `MIT`, `Apache-2.0`, `GPL-2`, `GPL-3`, `LGPL-2.1`, `LGPL-3`, `ISC`, `MPL-2.0`)
@@ -576,7 +576,7 @@ License metadata is not only expressed in different formats, but also stored in 
 - **Location**: Declared in Formula files (`.rb` Ruby scripts) located in Homebrew's formula repositories (homebrew-core, homebrew-cask, and third-party taps). The formula metadata is not embedded in installed packages but is maintained in Git repositories. Homebrew's API and web interface (formulae.brew.sh) serve this metadata. License information is stored in Homebrew's formula repositories and synced to the local system when formulae are updated.
 - **Notes**: The `license` field is required for new formulae in homebrew-core. Formula files must be executed as Ruby code to extract metadata. Homebrew uses standard SPDX identifiers in string format, not Ruby symbol notation.
 
-### Haskell Ecosystem — Cabal
+### Haskell Ecosystem — Cabal/Hackage
 - **Data type**: The `license` field in the `.cabal` package description file. The data type depends on the Cabal version format:
   - Legacy format (Cabal < 2.2): Enumeration value from a predefined list (e.g., `BSD3`, `MIT`, `Apache-2.0`, `GPL-3`, `OtherLicense`, `UnspecifiedLicense`)
   - Modern format (Cabal >= 2.2): String containing an SPDX license expression or a legacy identifier for backward compatibility
@@ -728,7 +728,7 @@ Access to license metadata varies across ecosystems. Some make it directly avail
 - **Registry access**: The formulae.brew.sh website displays license information for each formula. The license is parsed from the formula's `license` attribute and displayed on the formula's page along with other metadata.
 - **API access**: Homebrew provides a JSON API at `https://formulae.brew.sh/api/formula/<formula>.json` that includes license metadata. The API returns structured data including the license field. Formula files can also be accessed directly from GitHub repositories for detailed inspection.
 
-### Haskell Ecosystem — Cabal
+### Haskell Ecosystem — Cabal/Hackage
 - **Direct access**: License information is available in the `.cabal` package description file at the root of the package source. The `.cabal` file is a plain text file with a structured format that can be read directly. License text files referenced by `license-files` are also included in the package tarball.
 - **CLI access**: The `cabal info <package>` command displays package information including the license field. The Haskell tooling (`cabal-install`, `stack`) can query package metadata locally or from Hackage. The `ghc-pkg` command can display information about installed packages, including license metadata (`ghc-pkg describe <package>`).
 - **Registry access**: Hackage (https://hackage.haskell.org) provides a comprehensive web interface for browsing Haskell packages. Each package page displays the license information parsed from the `.cabal` file. The website provides search capabilities and displays package metadata prominently. Package documentation, dependencies, and license information are all readily accessible through the web interface.
@@ -808,7 +808,7 @@ To assess the practical quality and machine-readability of license metadata, we 
 **Sample Size Impact**: Comparing the two sample sizes reveals how license metadata quality varies with package popularity. In most ecosystems, the top 0.1% packages (the most popular) show comparable or slightly different coverage compared to the broader top 1% sample. Significant differences between samples can indicate that less popular packages have different metadata practices, either better (when maintainers are more careful) or worse (when packages are less actively maintained). Notable findings include ecosystems like Docker, Deno, and Pub which show 0% coverage due to lack of structured license metadata fields. Detailed per-ecosystem comparisons are provided in the coverage results.
 
 ### C++ Ecosystem — Conan
-- **Coverage**: TBD
+- **Coverage**: Coverage metrics were not run for this ecosystem in the present analysis.
 - **Reliability**: Weak to mixed. The `license` attribute is optional, allowing packages to be published without license information. There is no validation of the license field content—any string value is accepted, including misspellings, non-SPDX identifiers, custom abbreviations, or arbitrary text. ConanCenter (the central public repository) has submission guidelines that strongly recommend including license information and using SPDX identifiers, which improves reliability for packages in ConanCenter compared to private or third-party repositories. However, even ConanCenter relies primarily on code review rather than automated validation, meaning quality depends on reviewer diligence and package maintainer awareness.
 - **Limitations**:
   - The `license` field is optional, allowing packages without any license metadata.
@@ -821,7 +821,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - License text files are expected by convention but not enforced—packages may declare a license in metadata without including the actual license text.
 
 ### C++ Ecosystem — Vcpkg
-- **Coverage**: TBD
+- **Coverage**: 100% of packages in the top 1% have valid SPDX expressions (top 0.1%: 100%). However, the sample size is small and only 5 packages were evaluated in the top 1%.
 - **Reliability**: Weak to mixed. The `license` field is optional in `vcpkg.json`, allowing packages to be created without license information. The vcpkg documentation specifies that the license field should be either an SPDX 3.19 license expression or `null` as an escape hatch, but there is no validation to enforce this specification. Any string value is accepted. Vcpkg's position as a Microsoft-maintained project means many ports in the official repository follow the specification and use SPDX expressions. However, the lack of automated validation means license data quality depends entirely on port maintainer awareness and the code review process, and non-conforming values can be introduced.
 - **Limitations**:
   - The `license` field is optional, allowing ports without any license metadata.
@@ -832,7 +832,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - The file-based nature of vcpkg (using a GitHub repository rather than a database-backed registry service) makes it difficult to aggregate license information or assess ecosystem-wide compliance with the specification without cloning and parsing the repository.
 
 ### Clojure Ecosystem — Clojars (Leiningen)
-- **Coverage**: TBD
+- **Coverage**: 50% of packages in the top 1% have valid SPDX expressions (top 0.1%: insufficient sample size). However, the sample size is small and only 8 packages were evaluated in the top 1%.
 - **Reliability**: Weak. The `:license` field is optional in `project.clj`, allowing projects to be deployed to Clojars without license information. There is no validation of license content—any string can be used for `:name` and `:url`. Since Clojars is built on Maven infrastructure and Leiningen generates Maven POM files, license metadata inherits similar quality issues as Maven Central—free-form text in license names, lack of SPDX validation, and inconsistent declarations across packages.
 - **Limitations**:
   - The `:license` field is optional, allowing projects without any license metadata to be deployed to Clojars.
@@ -894,7 +894,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Some older packages may omit the `license` field or use nonstandard strings, though this is rare in practice.
 
 ### Java Ecosystem — Maven Central
-- **Coverage**: TBD
+- **Coverage**: 28.15% of packages in the top 1% have valid SPDX expressions (top 0.1%: 35.59%).
 - **Reliability**: Weak to mixed. While Maven Central requires the `<licenses>` section for publication, the lack of content validation results in highly inconsistent license data. Free-form text in the `<name>` field leads to variations like "Apache License 2.0", "Apache 2.0", "Apache-2.0", "ASL 2.0", and other permutations for the same license. Although SPDX identifiers are recommended, many packages use descriptive names, URLs, or informal abbreviations instead.
 - **Limitations**:
   - No validation of license content or format—Maven Central only checks for the presence of required fields.
@@ -905,7 +905,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - The `<url>` field is required but not validated, leading to inconsistent or non-existent URLs that cannot be reliably used for automated license text retrieval.
 
 ### .NET Ecosystem — NuGet
-- **Coverage**: TBD
+- **Coverage**: 30.59% of packages in the top 1% have valid SPDX expressions (top 0.1%: 88.89%).
 - **Reliability**: Good. Packages using the modern `<license>` element with `type="expression"` provide reliable, machine-readable SPDX license data. NuGet.org validates SPDX expressions when they are used, ensuring correctness. However, the optional nature of the `<license>` element means some packages omit license information entirely. Legacy packages may still use the deprecated `<licenseUrl>` element, which points to external URLs that may become stale or inaccessible over time.
 - **Limitations**:
   - The `<license>` element is optional, allowing packages to be published without license information.
@@ -915,7 +915,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Some older packages may have neither `<license>` nor `<licenseUrl>`, leaving license information completely unspecified.
 
 ### Ruby Ecosystem — RubyGems
-- **Coverage**: TBD
+- **Coverage**: 83.45% of packages in the top 1% have valid SPDX expressions (top 0.1%: 90.70%).
 - **Reliability**: Weak to mixed. While SPDX identifiers are recommended for the `license` and `licenses` fields, there is no validation or enforcement. Gems can specify arbitrary strings, use non-standard license names, or omit license information entirely. The quality of license metadata depends entirely on individual gem maintainer diligence and awareness of best practices.
 - **Limitations**:
   - The `license` and `licenses` fields are optional, allowing gems to be published without any license information.
@@ -927,7 +927,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Historical gems may have outdated, inconsistent, or completely missing license information with no migration path.
 
 ### macOS Ecosystem — Homebrew
-- **Coverage**: TBD
+- **Coverage**: 75.86% of packages in the top 1% have valid SPDX expressions (top 0.1%: insufficient sample size).
 - **Reliability**: Strong. Homebrew formulae maintained in official taps (homebrew-core, homebrew-cask) generally have consistent and accurate license information. The use of Ruby symbols for SPDX identifiers provides compile-time checking and reduces typos. The structured hash format with `:any_of` and `:all_of` keys makes complex licensing relationships explicit and machine-readable.
 - **Limitations**:
   - The `license` field is recommended but optional, meaning some formulae may omit license information, particularly in third-party taps.
@@ -937,8 +937,8 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Third-party taps may have inconsistent or missing license information compared to official Homebrew repositories.
   - Historical formulae may lack license information or use deprecated license identifier formats.
 
-### Haskell Ecosystem — Cabal
-- **Coverage**: TBD
+### Haskell Ecosystem — Cabal/Hackage
+- **Coverage**: 100% of packages in the top 1% have valid SPDX expressions (top 0.1%: insufficient sample size).
 - **Reliability**: Good to mixed, depending on package age and Cabal version. The mandatory `license` field ensures all packages on Hackage declare some license information. However, reliability varies:
   - Modern packages using SPDX expressions (Cabal >= 2.2) provide highly reliable, machine-readable license information.
   - Legacy packages using predefined identifiers (Cabal < 2.2) provide reasonably reliable information, though identifiers require translation to SPDX (e.g., `BSD3` → `BSD-3-Clause`).
@@ -954,7 +954,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Complex licenses require SPDX expressions (Cabal >= 2.2), but many packages still use `OtherLicense` with text files for legacy compatibility.
 
 ### Perl Ecosystem — CPAN
-- **Coverage**: TBD
+- **Coverage**: 88.19% of packages in the top 1% have valid SPDX expressions (top 0.1%: 92.31%).
 - **Reliability**: Mixed. The mandatory nature of the `license` field in CPAN::Meta::Spec version 2 ensures that all modern distributions include license metadata. However, the four special values (`open_source`, `restricted`, `unrestricted`, `unknown`) significantly reduce reliability. Distributions using these special values provide little to no actionable license information. The predefined list covers common open source licenses, but the lack of SPDX identifiers means the data requires translation for cross-ecosystem use.
 - **Limitations**:
   - The four special values reduce data quality: `open_source` doesn't specify which license, `restricted` doesn't provide actual terms, `unrestricted` lacks precise legal characterization, and `unknown` explicitly indicates missing information.
@@ -966,7 +966,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Build tools must correctly generate META files from distribution metadata; errors in this process can result in incorrect license information.
 
 ### Python Ecosystem — Conda
-- **Coverage**: TBD
+- **Coverage**: 91.04% of packages in the top 1% have valid SPDX expressions (top 0.1%: 50.00%).
 - **Reliability**: Weak. All license-related fields in `meta.yaml` are optional, meaning conda packages can be built and published without any license information. The `license` field accepts arbitrary free-form text without validation, leading to highly inconsistent license declarations across packages. Package maintainers may use SPDX identifiers, descriptive names, abbreviations, URLs, or any other text. The `license_family` field provides broad categorization but follows no official standard and accepts any text value, with common values used only by convention.
 - **Limitations**:
   - All license-related fields (`license`, `license_family`, `license_file`, `license_url`) are optional, allowing packages to be published without any license metadata.
@@ -981,7 +981,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Recipe maintainers may inconsistently populate fields—for example, using only `license` without `license_family`, or vice versa, or using `license_url` instead of including license text directly.
 
 ### Linux Ecosystem — dpkg (Debian/Ubuntu)
-- **Coverage**: TBD
+- **Coverage**: Coverage metrics were not run for this ecosystem in the present analysis.
 - **Reliability**: Mixed to good. The DEP-5 (Debian Copyright Format 1.0) specification provides a machine-readable structured format that supports complex licensing scenarios with multiple licenses, operators (`and`, `or`), and file-level granularity. Debian policy mandates the `debian/copyright` file and encourages the use of DEP-5 format for new packages. However, reliability varies across the ecosystem because not all packages use the fully machine-readable format—older packages may still use prose-style copyright files that require human interpretation.
 - **Limitations**:
   - The DEP-5 format is mandatory but not universally adopted—many older packages predate the format or haven't been updated to use it.
@@ -994,7 +994,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Quality depends heavily on package maintainer diligence—errors, omissions, or outdated information may persist through multiple package versions.
 
 ### Linux Ecosystem — rpm (Red Hat/Fedora/SUSE)
-- **Coverage**: TBD
+- **Coverage**: Coverage metrics were not run for this ecosystem in the present analysis.
 - **Reliability**: Strong for Fedora, mixed to weak for other RPM distributions. Since July 2022, Fedora requires valid SPDX license expressions in the `License:` tag and validates them at build time using the `python-license-expression` library. This ensures high reliability and consistency for Fedora packages. However, the broader RPM ecosystem is fragmented—different distributions have different requirements. Red Hat Enterprise Linux (RHEL), CentOS, openSUSE, and others may have varying levels of SPDX adoption, validation, or may still accept free-form license text without validation.
 - **Limitations**:
   - The `License:` tag is mandatory in all RPM distributions, but content validation varies dramatically by distribution.
@@ -1008,7 +1008,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Quality depends on distribution policy and maintainer practices—packages from less-maintained repositories may have outdated, incorrect, or ambiguous license information.
 
 ### Linux Ecosystem — apk (Alpine Linux)
-- **Coverage**: TBD
+- **Coverage**: 75.56% of packages in the top 1% have valid SPDX expressions (top 0.1%: 70.24%).
 - **Reliability**: Weak to mixed. The `license` field is mandatory in Alpine Linux APKBUILDs, ensuring that all packages have some license declaration. SPDX identifiers are recommended in Alpine's documentation, and many packages do use them. However, there is no validation mechanism to enforce SPDX identifiers or expressions. The space-separated format used for listing multiple licenses creates ambiguity—the format doesn't distinguish between AND and OR relationships, relying on convention, documentation, or contextual understanding of the software's actual licensing terms.
 - **Limitations**:
   - The `license` field is mandatory but unvalidated—any text value is accepted, including misspellings, non-standard names, or custom abbreviations.
@@ -1023,7 +1023,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Quality depends entirely on individual package maintainer knowledge and diligence, with no centralized validation or quality control mechanism.
 
 ### FreeBSD Ecosystem — Ports
-- **Coverage**: TBD
+- **Coverage**: Coverage metrics were not run for this ecosystem in the present analysis.
 - **Reliability**: Good to strong. The `LICENSE` variable is mandatory for all FreeBSD ports, ensuring comprehensive coverage across the ports collection. FreeBSD maintains a predefined database of license identifiers (`Mk/bsd.licenses.db.mk`) that provides consistency and reduces ambiguity within the FreeBSD ecosystem. The `LICENSE_COMB` variable provides explicit, unambiguous semantics for expressing AND/OR relationships between multiple licenses through three distinct values (`single`, `multi`, `dual`). The ports framework validates that license identifiers either match entries in the predefined database or are properly defined as custom licenses with all required metadata.
 - **Limitations**:
   - FreeBSD uses its own set of license identifiers rather than SPDX identifiers, requiring translation for cross-ecosystem use. While many identifiers align (e.g., `MIT`, `BSD2CLAUSE`, `BSD3CLAUSE`), others differ significantly (e.g., `GPLv2` vs. `GPL-2.0-only`, `APACHE20` vs. `Apache-2.0`).
@@ -1047,7 +1047,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - As SPM packages are distributed via Git repositories, license information quality depends entirely on repository maintainer practices rather than package manager infrastructure or conventions.
 
 ### Swift Ecosystem — CocoaPods
-- **Coverage**: TBD
+- **Coverage**: 93.30% of packages in the top 1% have valid SPDX expressions (top 0.1%: 96.55%).
 - **Reliability**: Medium. When present, license information is typically reliable for indicating license type, but quality varies:
   - Pods with properly specified `:type` and `:file` attributes provide clear, actionable license information.
   - Some pods only specify `:type` without `:file`, requiring users to locate license files manually in the package source.
@@ -1249,7 +1249,7 @@ To make license information usable across ecosystems, processes must account for
 6. If no license information is present in the Formula, flag the package as having no declared license.
 7. Validate the resulting SPDX expression using an SPDX parser.
 
-### Haskell Ecosystem — Cabal
+### Haskell Ecosystem — Cabal/Hackage
 1. Retrieve the `.cabal` package description file from the package, either from the source repository, by downloading the package tarball from Hackage, or via the Hackage API (e.g., `https://hackage.haskell.org/package/<package>/<package>.cabal`).
 2. Parse the `.cabal` file to extract the `license` field value. This requires either:
    - Using the Cabal library's parsing functions (most reliable method).
