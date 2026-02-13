@@ -4,7 +4,21 @@ This document analyzes how different package managers handle license metadata ac
 
 ## 1. Key findings summary
 
-_TBD after sections 2–7 are finalized._
+Ecosystems were grouped by how license information is declared in package metadata (Section 3, Field Analysis):
+
+- **Unambiguously specified** (8 ecosystems): License is declared using SPDX identifiers or expressions, with documented escape hatches (e.g. “SEE LICENSE IN &lt;file&gt;”, `proprietary`, or file references). Validation may exist (Cargo, Fedora rpm) or be advisory (npm, Composer). Ecosystems: Cargo, npm, Composer (Packagist), NuGet, Homebrew, rpm (Fedora), Vcpkg, Cabal/Hackage.
+
+- **Ambiguously specified** (12 ecosystems): License metadata exists but is optional and/or non-standard: free-form text, recommended-but-unenforced SPDX, predefined non-SPDX lists, or formats that do not specify AND/OR/WITH semantics. Quality and machine-readability vary. Ecosystems: Conan, Clojars, CPAN, RubyGems, Maven Central, PyPI (pip), Conda, dpkg (Debian/Ubuntu), apk (Alpine), FreeBSD Ports, CocoaPods, Go (heuristic detection only).
+
+- **Unspecified** (3 ecosystems): No structured license field in the package manifest or registry. License is at best inferred from files (e.g. `LICENSE`) or documentation by convention. Ecosystems: Docker, SwiftPM, Carthage.
+
+**Coverage (SPDX validity).** A separate coverage analysis (Ecosyste.ms data) looked at three samples by popularity: **top 0.1%** (2,132 packages, 27 ecosystems), **top 1%** (36,224 packages, 35 ecosystems), and **top 10%** (2,338,707 packages, 35 ecosystems). The **1% and 10% samples share the same 35 ecosystems**, so every row in the comparison table has data for both; the 0.1% sample has only 27 ecosystems (hence “-” in that column for others), and the balanced sample includes 30 (hence “-” where an ecosystem had fewer than 500 packages). Overall valid SPDX coverage **increases** from top 0.1% to top 1% (48% → 60%), then **decreases** from top 1% to top 10% (60% → ~47%): the 10% sample is dominated by packages from ecosystems with lower SPDX adoption (e.g. Go ~43%, Docker 0%, NuGet ~21%), so the aggregate share of valid SPDX drops. A **balanced sample** (up to 500 packages per ecosystem from the 10% data) gives more equal weight per package manager and yields ~61.5% overall coverage (see coverage results). Escape hatches such as “SEE LICENSE IN”, “UNKNOWN”, “NONE” were excluded from the valid count.
+
+**Caveat:** Having a valid SPDX expression does not mean the declaration is correct. Some ecosystems or packages cannot properly express OR/AND/WITH relationships (or rely on escape hatches), and some declarations may be misrepresented (e.g. wrong license, outdated identifier). These coverage values are therefore a **top-level cap** on what we can assume is good—actual machine-readable, legally accurate coverage may be lower.
+
+Coverage is **not equal across the three categories**. Among **unambiguously specified** ecosystems in the dataset, observed SPDX coverage ranges from ~30% (NuGet) and ~46% (Cargo) to 96–100% (npm, Packagist, Vcpkg, Hackage)—so having a clear spec does not by itself guarantee high coverage. **Ambiguously specified** ecosystems show an even wider spread (e.g. Maven ~28%, PyPI ~60%, RubyGems ~83%, Go and CocoaPods ~94%), reflecting differing adoption of SPDX or structured license fields. **Unspecified** ecosystems are 0% where no license metadata exists (Docker, Deno, Pub, Racket, Spack); SwiftPM and Carthage show non-zero coverage in the data likely due to heuristic or file-based detection by the source.
+
+**Sensitivity (≥30 packages).** Restricting the analysis to package managers with at least 30 packages in the sample does not change these conclusions. Overall coverage still **increases** from top 0.1% to top 1% (~47% → ~60%), then **decreases** to top 10% (~47.5%); coverage remains **unequal across categories** (e.g. among ecosystems with ≥30 packages in the 1% sample, unambiguous ones aggregate to ~94% valid SPDX, ambiguous to ~77%, unspecified to 0%). The document’s detailed review covers **23** of these package managers end-to-end (Sections 2–7).
 
 ## 2. Data Collection Overview
 
@@ -794,18 +808,21 @@ The quality of license metadata across ecosystems varies widely, not only in ter
 
 ### Methodology
 
-To assess the practical quality and machine-readability of license metadata, we analyzed real-world data from [Ecosyste.ms](https://ecosyste.ms/) (licensed under CC BY-SA 4.0). The analysis examined two sample sizes: the top 0.1% and top 1% most popular packages per ecosystem, ranked by download counts and usage metrics. For each package, we validated whether the declared license value could be successfully parsed as a valid SPDX expression using the `license-expression` library.
+To assess the practical quality and machine-readability of license metadata, we analyzed real-world data from [Ecosyste.ms](https://ecosyste.ms/) (licensed under CC BY-SA 4.0). The analysis examined three sample sizes: the top 0.1%, top 1%, and top 10% most popular packages per ecosystem, ranked by download counts and usage metrics. For each package, we validated whether the declared license value could be successfully parsed as a valid SPDX expression using the `license-expression` library.
 
-**Coverage Definition**: The percentage represents the proportion of packages that declare a valid SPDX license expression. Empty values, null entries, whitespace-only strings, and SPDX escape hatches are excluded from the "valid" count. Escape hatches such as `NONE`, `NOASSERTION`, `UNKNOWN`, and `SEE LICENSE IN` technically parse as valid SPDX but indicate that no license was declared or that a fallback mechanism was used rather than an actual machine-readable license declaration. This metric measures how effectively each ecosystem supports machine-readable license declarations in practice, not just in specification.
+**Coverage Definition**: The percentage represents the proportion of packages that declare a valid SPDX license expression. Empty values, null entries, whitespace-only strings, and SPDX escape hatches are excluded from the "valid" count. Escape hatches such as `NONE`, `NOASSERTION`, `UNKNOWN`, and `SEE LICENSE IN` technically parse as valid SPDX but indicate that no license was declared or that a fallback mechanism was used rather than an actual machine-readable license declaration. This metric measures how effectively each ecosystem supports machine-readable license declarations in practice, not just in specification. **Valid SPDX does not imply correctness**—ecosystems or packages that cannot express OR/AND/WITH relationships (or that use escape hatches) may be misrepresented, and some declarations may be wrong or outdated; these coverage values are an upper bound on "good" declarations.
 
-**Data Samples**: 
-- Top 0.1% of packages per ecosystem: 2,132 packages across 27 ecosystems
-- Top 1% of packages per ecosystem: 36,224 packages across 36 ecosystems
+**Data Samples**: The samples are the top 0.1%, 1%, and 10% most popular packages (by download/usage) among **all packages registered in Ecosyste.ms**; the sample size **per package manager is not equal**, since each ecosystem contributes according to its share of the top fraction. The **1% and 10% samples share the same 35 ecosystems**; the 0.1% sample has 27 (fewer package managers in that slice). So in the comparison table, the 10% column has no “-” (all 35 appear in 10%), while the 0.1% and balanced columns do where an ecosystem is missing from that sample.
+
+- Top 0.1% of packages: 2,132 packages across 27 ecosystems (overall valid SPDX: ~48.0%)
+- Top 1% of packages: 36,224 packages across 35 ecosystems (overall valid SPDX: ~60.2%)
+- Top 10% of packages: 2,338,707 packages across 35 ecosystems (overall valid SPDX: ~47.5%)
 - Analysis date: November 26, 2025
 - Full analysis results available in [`license_coverage_results.txt`](license_coverage_results.txt)
-- Processed data available in [`licenses-0.1_processed.csv`](licenses-0.1_processed.csv) and [`licenses-1_processed.csv`](licenses-1_processed.csv)
+- Source data (large files may be distributed as .gz): `licenses-0.1.csv`, `licenses-1.csv`, `licenses-10.csv` (e.g. `licenses-0.1.csv.gz`, `licenses-1.csv.gz`, `licenses-10.csv.gz`). Processed data available in [`licenses-0.1_processed.csv`](licenses-0.1_processed.csv), [`licenses-1_processed.csv`](licenses-1_processed.csv), [`licenses-10_processed.csv`](licenses-10_processed.csv), and [`licenses-500top-balanced_processed.csv`](licenses-500top-balanced_processed.csv)
+- **Balanced sample** (500 packages per ecosystem from the 10% data; ecosystems with fewer than 500 excluded): 15,000 packages across 30 ecosystems (overall valid SPDX: ~61.5%). Generated with `filter_balanced_sample.py` from `licenses-10.csv.gz`; output is `licenses-500top-balanced.csv`. This sample gives more equal weight per package manager and avoids dominance by a few large ecosystems; overall coverage is higher than in the raw 10% sample and closer to the top 1%.
 
-**Sample Size Impact**: Comparing the two sample sizes reveals how license metadata quality varies with package popularity. In most ecosystems, the top 0.1% packages (the most popular) show comparable or slightly different coverage compared to the broader top 1% sample. Significant differences between samples can indicate that less popular packages have different metadata practices, either better (when maintainers are more careful) or worse (when packages are less actively maintained). Notable findings include ecosystems like Docker, Deno, and Pub which show 0% coverage due to lack of structured license metadata fields. Detailed per-ecosystem comparisons are provided in the coverage results.
+**Sample Size Impact**: Coverage rises from top 0.1% to top 1% (48% → 60%) then falls from top 1% to top 10% (60% → ~47.5%); the 10% sample’s composition—many more packages from ecosystems with lower SPDX adoption (e.g. Go, Docker, NuGet)—drives the aggregate drop. In most ecosystems, the top 0.1% packages (the most popular) show comparable or slightly different coverage compared to the broader top 1% sample. Significant differences between samples can indicate that less popular packages have different metadata practices. Notable findings include ecosystems like Docker, Deno, and Pub which show 0% coverage due to lack of structured license metadata fields. Detailed per-ecosystem comparisons are provided in the coverage results.
 
 ### C++ Ecosystem — Conan
 - **Coverage**: Coverage metrics were not run for this ecosystem in the present analysis.
@@ -846,14 +863,14 @@ To assess the practical quality and machine-readability of license metadata, we 
   - No mechanism to systematically audit or improve license metadata quality across the Clojars ecosystem.
 
 ### Rust Ecosystem — Cargo
-- **Coverage**: 45.53% of packages in the top 1% have valid SPDX expressions (top 0.1%: insufficient sample size).
+- **Coverage**: 45.53% of packages in the top 1% have valid SPDX expressions (top 0.1%: insufficient sample size; top 10%: 57.01%).
 - **Reliability**: Mixed. While SPDX validation is enforced, many packages use the license file escape hatch rather than declaring SPDX expressions directly, resulting in lower machine-readable coverage than expected.
 - **Limitations**:
   - When a license file is used instead of an SPDX expression, automated tooling must parse external text, which introduces variability.
   - The high use of escape hatches (54.47% of top 1% packages) indicates that while the specification supports SPDX, many maintainers opt for the license file mechanism.
 
 ### Python Ecosystem — PyPI (pip)
-- **Coverage**: 60.29% of packages in the top 1% have valid SPDX expressions (top 0.1%: 58.06%).
+- **Coverage**: 60.29% of packages in the top 1% have valid SPDX expressions (top 0.1%: 58.06%; top 10%: 64.21%).
 - **Reliability**: Weak to mixed.
   - Newer projects using PEP 639 metadata (Core Metadata 2.4) and supporting build tools can use SPDX identifiers and expressions, making license data machine-readable.
   - Older projects often use free-form text or inconsistent naming ("BSD-style", "GPLv2 or later"), which complicates parsing.
@@ -863,14 +880,14 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Some projects include a `LICENSE` file in their source but leave the metadata blank, forcing consumers to rely on heuristics.
 
 ### Container Ecosystem — Docker
-- **Coverage**: 0% (both top 0.1% and 1%). Docker does not provide structured license metadata fields.
+- **Coverage**: 0% (top 0.1%, 1%, and 10%). Docker does not provide structured license metadata fields.
 - **Reliability**: Absent. Crawling image descriptions in registries is only a heuristic approach, and most descriptions do not include licensing information. The analysis confirms that 828 packages in the top 0.1% and 10,766 packages in the top 1% have no machine-readable license metadata.
 - **Limitations**:
   - Registries like Docker Hub sometimes display licensing information in free-text descriptions, but this is inconsistent and not machine-readable.
   - Without structured metadata, automated compliance tooling cannot reliably determine licensing status.
 
 ### Go Ecosystem — Go Modules
-- **Coverage**: 94.83% of packages in the top 1% have valid SPDX expressions (top 0.1%: 95.0%), as detected and normalized by ecosyste.ms from license files.
+- **Coverage**: 94.83% of packages in the top 1% have valid SPDX expressions (top 0.1%: 95.0%; top 10%: 42.62%), as detected and normalized by ecosyste.ms from license files. The large drop at top 10% reflects that sample’s composition (Go dominates package count with lower SPDX adoption in the long tail).
 - **Reliability**: Good in practice despite weak specification. When conventional license files are used and remain unmodified, detection tools produce consistent results. Variations in file naming or content reduce accuracy. The consistently high coverage (~95%) across both samples indicates that the Go ecosystem has strong conventions around license file placement and content, enabling reliable heuristic detection.
 - **Limitations**:
   - No structured license field in `go.mod` or module metadata.
@@ -879,7 +896,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - No official `go` CLI command provides license information (see [cmd/go reference](https://pkg.go.dev/cmd/go)).
 
 ### JavaScript Ecosystem — npm
-- **Coverage**: 95.98% of packages in the top 1% have valid SPDX expressions (top 0.1%: 96.94%).
+- **Coverage**: 95.98% of packages in the top 1% have valid SPDX expressions (top 0.1%: 96.94%; top 10%: 92.67%).
 - **Reliability**: Excellent. SPDX identifiers and expressions are widely adopted and validated during publication. The high and consistent coverage (~96-97%) across both samples demonstrates that npm's validation warnings effectively encourage proper SPDX usage. Minor inconsistencies remain due to legacy packages using custom text or missing declarations.
 - **Limitations**:
   - The `license` field is not strictly enforced; non-SPDX values generate warnings but are still accepted.
@@ -894,7 +911,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Some older packages may omit the `license` field or use nonstandard strings, though this is rare in practice.
 
 ### Java Ecosystem — Maven Central
-- **Coverage**: 28.15% of packages in the top 1% have valid SPDX expressions (top 0.1%: 35.59%).
+- **Coverage**: 28.15% of packages in the top 1% have valid SPDX expressions (top 0.1%: 35.59%; top 10%: 31.05%).
 - **Reliability**: Weak to mixed. While Maven Central requires the `<licenses>` section for publication, the lack of content validation results in highly inconsistent license data. Free-form text in the `<name>` field leads to variations like "Apache License 2.0", "Apache 2.0", "Apache-2.0", "ASL 2.0", and other permutations for the same license. Although SPDX identifiers are recommended, many packages use descriptive names, URLs, or informal abbreviations instead.
 - **Limitations**:
   - No validation of license content or format—Maven Central only checks for the presence of required fields.
@@ -905,7 +922,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - The `<url>` field is required but not validated, leading to inconsistent or non-existent URLs that cannot be reliably used for automated license text retrieval.
 
 ### .NET Ecosystem — NuGet
-- **Coverage**: 30.59% of packages in the top 1% have valid SPDX expressions (top 0.1%: 88.89%).
+- **Coverage**: 30.59% of packages in the top 1% have valid SPDX expressions (top 0.1%: 88.89%; top 10%: 21.39%).
 - **Reliability**: Good. Packages using the modern `<license>` element with `type="expression"` provide reliable, machine-readable SPDX license data. NuGet.org validates SPDX expressions when they are used, ensuring correctness. However, the optional nature of the `<license>` element means some packages omit license information entirely. Legacy packages may still use the deprecated `<licenseUrl>` element, which points to external URLs that may become stale or inaccessible over time.
 - **Limitations**:
   - The `<license>` element is optional, allowing packages to be published without license information.
@@ -915,7 +932,7 @@ To assess the practical quality and machine-readability of license metadata, we 
   - Some older packages may have neither `<license>` nor `<licenseUrl>`, leaving license information completely unspecified.
 
 ### Ruby Ecosystem — RubyGems
-- **Coverage**: 83.45% of packages in the top 1% have valid SPDX expressions (top 0.1%: 90.70%).
+- **Coverage**: 83.45% of packages in the top 1% have valid SPDX expressions (top 0.1%: 90.70%; top 10%: 65.40%).
 - **Reliability**: Weak to mixed. While SPDX identifiers are recommended for the `license` and `licenses` fields, there is no validation or enforcement. Gems can specify arbitrary strings, use non-standard license names, or omit license information entirely. The quality of license metadata depends entirely on individual gem maintainer diligence and awareness of best practices.
 - **Limitations**:
   - The `license` and `licenses` fields are optional, allowing gems to be published without any license information.

@@ -5,7 +5,7 @@
 This analysis measures the percentage of packages with valid SPDX
 license expressions across different package ecosystems.
 
-Data source: data/2025-11-26
+Data source: data/2025-11-26 (source CSVs may be distributed as .gz)
 Data license: CC BY-SA 4.0 (Ecosyste.ms)
 Analysis date: November 26, 2025
 
@@ -57,7 +57,7 @@ TOP 1% OF PACKAGES
 ================================================================================
 
 Total packages: 36,224
-Total ecosystems: 36
+Total ecosystems: 35
 
 Ecosystem            | Total Packages | Valid SPDX | Coverage
 ─────────────────────┼────────────────┼────────────┼──────────
@@ -102,53 +102,148 @@ OVERALL              |         36,224 |     21,817 |  60.23%
 ────────────────────────────────────────────────────────────────
 
 ================================================================================
+TOP 10% OF PACKAGES
+================================================================================
+
+Total packages: 2,338,707
+Total ecosystems: 35
+
+Ecosystem            | Total Packages | Valid SPDX | Coverage
+─────────────────────┼────────────────┼────────────┼──────────
+actions              |            827 |        733 |  88.63%
+adelie               |          7,186 |      4,553 |  63.36%
+alpine               |         92,284 |     72,191 |  78.23%
+bioconductor         |            547 |        372 |  68.01%
+bower                |          6,511 |      2,876 |  44.17%
+cargo                |          8,750 |      4,988 |  57.01%
+carthage             |            182 |        118 |  64.84%
+clojars              |          1,263 |        913 |  72.29%
+cocoapods            |          8,999 |      8,345 |  92.73%
+conda                |          1,339 |      1,266 |  94.55%
+cpan                 |         11,176 |      8,775 |  78.52%
+cran                 |          1,874 |        607 |  32.39%
+deno                 |          2,234 |          0 |   0.00%
+docker               |        163,351 |          0 |   0.00%
+elm                  |            180 |        180 | 100.00%
+elpa                 |            121 |          0 |   0.00%
+go                   |      1,590,932 |    678,049 |  42.62%
+hackage              |          1,175 |      1,165 |  99.15%
+hex                  |          1,005 |        826 |  82.19%
+homebrew             |            560 |        487 |  86.96%
+julia                |          1,577 |      1,550 |  98.29%
+maven                |         28,015 |      8,699 |  31.05%
+npm                  |        227,054 |    210,402 |  92.67%
+nuget                |         41,382 |      8,850 |  21.39%
+openvsx              |          2,010 |      1,467 |  72.99%
+packagist            |         21,536 |     20,634 |  95.81%
+postmarketos         |          2,233 |      1,840 |  82.40%
+pub                  |          3,792 |          0 |   0.00%
+puppet               |          1,089 |      1,004 |  92.19%
+pypi                 |         39,828 |     25,573 |  64.21%
+racket               |            524 |          0 |   0.00%
+rubygems             |         66,648 |     43,590 |  65.40%
+spack                |          1,914 |          0 |   0.00%
+swiftpm              |            457 |        295 |  64.55%
+vcpkg                |            152 |        110 |  72.37%
+
+────────────────────────────────────────────────────────────────
+OVERALL              |      2,338,707 |  1,110,458 |  47.48%
+────────────────────────────────────────────────────────────────
+
+================================================================================
+BALANCED SAMPLE (500 per ecosystem, from 10% data; ecosystems with <500 excluded)
+================================================================================
+
+Total packages: 15,000
+Total ecosystems: 30
+
+Ecosystem            | Total Packages | Valid SPDX | Coverage
+─────────────────────┼────────────────┼────────────┼──────────
+actions              |            500 |        455 |  91.00%
+adelie               |            500 |        292 |  58.40%
+alpine               |            500 |        348 |  69.60%
+bioconductor         |            500 |        344 |  68.80%
+bower                |            500 |        185 |  37.00%
+cargo                |            500 |        227 |  45.40%
+clojars              |            500 |        371 |  74.20%
+cocoapods            |            500 |        467 |  93.40%
+conda                |            500 |        472 |  94.40%
+cpan                 |            500 |        436 |  87.20%
+cran                 |            500 |        125 |  25.00%
+deno                 |            500 |          0 |   0.00%
+docker               |            500 |          0 |   0.00%
+go                   |            500 |        462 |  92.40%
+hackage              |            500 |        499 |  99.80%
+hex                  |            500 |        400 |  80.00%
+homebrew             |            500 |        432 |  86.40%
+julia                |            500 |        499 |  99.80%
+maven                |            500 |        148 |  29.60%
+npm                  |            500 |        490 |  98.00%
+nuget                |            500 |        130 |  26.00%
+openvsx              |            500 |        301 |  60.20%
+packagist            |            500 |        491 |  98.20%
+postmarketos         |            500 |        441 |  88.20%
+pub                  |            500 |          0 |   0.00%
+puppet               |            500 |        467 |  93.40%
+pypi                 |            500 |        288 |  57.60%
+racket               |            500 |          0 |   0.00%
+rubygems             |            500 |        457 |  91.40%
+spack                |            500 |          0 |   0.00%
+
+────────────────────────────────────────────────────────────────
+OVERALL              |         15,000 |      9,227 |  61.51%
+────────────────────────────────────────────────────────────────
+
+================================================================================
 COMPARISON SUMMARY
 ================================================================================
 
-Ecosystem            | Top 0.1% Coverage | Top 1% Coverage | Difference
-─────────────────────┼───────────────────┼─────────────────┼────────────
-actions              |           100.00% |          96.00% |      -4.00%
-adelie               |            33.33% |          60.48% |     +27.15%
-alpine               |            70.24% |          75.56% |      +5.32%
-bioconductor         |           100.00% |          74.07% |     -25.93%
-bower                |            16.67% |          35.29% |     +18.62%
-cargo                |                 - |          45.53% |           -
-carthage             |           100.00% |          60.00% |     -40.00%
-clojars              |                 - |          50.00% |           -
-cocoapods            |            96.55% |          93.30% |      -3.25%
-conda                |            50.00% |          91.04% |     +41.04%
-cpan                 |            92.31% |          88.19% |      -4.12%
-cran                 |             0.00% |          33.33% |     +33.33%
-deno                 |             0.00% |           0.00% |       0.00%
-docker               |             0.00% |           0.00% |       0.00%
-elm                  |                 - |         100.00% |           -
-elpa                 |                 - |           0.00% |           -
-go                   |            95.00% |          94.83% |      -0.17%
-hackage              |                 - |         100.00% |           -
-hex                  |            50.00% |          64.00% |     +14.00%
-homebrew             |                 - |          75.86% |           -
-julia                |           100.00% |         100.00% |       0.00%
-maven                |            35.59% |          28.15% |      -7.44%
-npm                  |            96.94% |          95.98% |      -0.96%
-nuget                |            88.89% |          30.59% |     -58.30%
-openvsx              |            63.16% |          45.64% |     -17.52%
-packagist            |           100.00% |          97.21% |      -2.79%
-postmarketos         |            50.00% |          86.40% |     +36.40%
-pub                  |                 - |           0.00% |           -
-puppet               |           100.00% |         100.00% |       0.00%
-pypi                 |            58.06% |          60.29% |      +2.23%
-racket               |                 - |           0.00% |           -
-rubygems             |            90.70% |          83.45% |      -7.25%
-spack                |             0.00% |           0.00% |       0.00%
-swiftpm              |                 - |          50.00% |           -
-vcpkg                |           100.00% |         100.00% |       0.00%
+Ecosystem            | Top 0.1% Coverage | Top 1% Coverage | Top 10% Coverage | Balanced (500)
+─────────────────────┼───────────────────┼─────────────────┼──────────────────┼───────────────
+actions              |           100.00% |          96.00% |          88.63% |      91.00%
+adelie               |            33.33% |          60.48% |          63.36% |      58.40%
+alpine               |            70.24% |          75.56% |          78.23% |      69.60%
+bioconductor         |           100.00% |          74.07% |          68.01% |      68.80%
+bower                |            16.67% |          35.29% |          44.17% |      37.00%
+cargo                |                 - |          45.53% |          57.01% |      45.40%
+carthage             |           100.00% |          60.00% |          64.84% |           -
+clojars              |                 - |          50.00% |          72.29% |      74.20%
+cocoapods            |            96.55% |          93.30% |          92.73% |      93.40%
+conda                |            50.00% |          91.04% |          94.55% |      94.40%
+cpan                 |            92.31% |          88.19% |          78.52% |      87.20%
+cran                 |             0.00% |          33.33% |          32.39% |      25.00%
+deno                 |             0.00% |           0.00% |           0.00% |       0.00%
+docker               |             0.00% |           0.00% |           0.00% |       0.00%
+elm                  |                 - |         100.00% |         100.00% |           -
+elpa                 |                 - |           0.00% |           0.00% |           -
+go                   |            95.00% |          94.83% |          42.62% |      92.40%
+hackage              |                 - |         100.00% |          99.15% |      99.80%
+hex                  |            50.00% |          64.00% |          82.19% |      80.00%
+homebrew             |                 - |          75.86% |          86.96% |      86.40%
+julia                |           100.00% |         100.00% |          98.29% |      99.80%
+maven                |            35.59% |          28.15% |          31.05% |      29.60%
+npm                  |            96.94% |          95.98% |          92.67% |      98.00%
+nuget                |            88.89% |          30.59% |          21.39% |      26.00%
+openvsx              |            63.16% |          45.64% |          72.99% |      60.20%
+packagist            |           100.00% |          97.21% |          95.81% |      98.20%
+postmarketos         |            50.00% |          86.40% |          82.40% |      88.20%
+pub                  |                 - |           0.00% |           0.00% |       0.00%
+puppet               |           100.00% |         100.00% |          92.19% |      93.40%
+pypi                 |            58.06% |          60.29% |          64.21% |      57.60%
+racket               |                 - |           0.00% |           0.00% |       0.00%
+rubygems             |            90.70% |          83.45% |          65.40% |      91.40%
+spack                |             0.00% |           0.00% |           0.00% |       0.00%
+swiftpm              |                 - |          50.00% |          64.55% |           -
+vcpkg                |           100.00% |         100.00% |          72.37% |           -
 
 KEY FINDINGS:
 - Ecosystems with 0% coverage (no structured metadata): docker, deno, elpa, pub, racket, spack
-- Excellent coverage (>95%): npm, packagist (php), go, puppet, actions (top 1%)
-- Significant improvement with broader sample: adelie (+27%), conda (+41%), postmarketos (+36%)
-- Significant degradation with broader sample: nuget (-58%), carthage (-40%), bioconductor (-26%)
-- Most consistent across samples: go, npm, packagist, docker, deno, julia, puppet, vcpkg, spack
+- Overall coverage increases from top 0.1% to top 1% (48% → 60%) but decreases from top 1% to top 10% (60% → 47.5%); the 10% sample is dominated by packages from ecosystems with lower SPDX adoption (e.g. Go ~43%, Docker 0%, NuGet ~21%)
+- Excellent coverage (>95%) in top 1%: npm, packagist (php), go, puppet, actions; in top 10%, Go drops to ~43% due to sample composition
+- Significant improvement 0.1%→1%: adelie (+27%), conda (+41%), postmarketos (+36%)
+- Significant degradation 0.1%→1%: nuget (-58%), carthage (-40%), bioconductor (-26%)
+- Most consistent across all three samples: docker, deno, julia, spack (and others with stable coverage)
+- **Balanced sample** (500 packages per ecosystem from 10% data; ecosystems with <500 excluded): 15,000 packages, 30 ecosystems, overall valid SPDX 61.51%. Equal weight per ecosystem avoids dominance by a few large ecosystems; coverage is higher than in the raw 10% sample (47.5%) and closer to the top 1% (60%).
 
 ================================================================================
 ============================== ANALYSIS COMPLETE ===============================
@@ -157,4 +252,6 @@ KEY FINDINGS:
 Processed CSV files:
   - licenses-0.1_processed.csv
   - licenses-1_processed.csv
+  - licenses-10_processed.csv.gz
+  - licenses-500top-balanced_processed.csv
 

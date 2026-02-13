@@ -35,6 +35,26 @@ CSV files with columns: `ecosystem`, `name`, `licenses`
 pipenv run python analyze_license_coverage.py ../data/2025-11-26/licenses-1.csv
 ```
 
+### `filter_balanced_sample.py`
+
+Filters a license CSV (e.g. the 10% sample) to a **balanced sample** with at most N packages per ecosystem. The raw top 0.1%/1%/10% samples from Ecosyste.ms are popularity-based across all packages, so sample size per package manager is unequal; this script keeps the first N rows per ecosystem (in file order) for a more equal comparison.
+
+**Usage:**
+```bash
+pipenv run python filter_balanced_sample.py <input.csv> [-o <output.csv>] [-n 500] [--analyze]
+```
+
+**Options:**
+- `-o`, `--output`: Output filtered CSV (default: `<input_stem>-balanced.csv` in same directory)
+- `-n`, `--max`: Max packages per ecosystem (default: 500)
+- `--analyze`: Run `analyze_license_coverage.py` on the filtered CSV and write processed results to the drafts directory
+
+**Example:**
+```bash
+# Write balanced CSV (first 500 per ecosystem) then run analysis
+pipenv run python filter_balanced_sample.py ../data/2025-11-26/licenses-10.csv -o ../data/2025-11-26/licenses-10-balanced.csv --analyze
+```
+
 ## Installation
 
 This project uses pipenv for dependency management:
