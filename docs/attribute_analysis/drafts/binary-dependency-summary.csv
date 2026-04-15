@@ -1,0 +1,14 @@
+Ecosystem,Package Manager,Bindep Recording Method,Bindep Handling Method,Extension Module Structure,Binary Package Format
+Python,Conda,"Automatically, in environment.yml",Packaged,Python.h,Self-built wheel hosted on PyPI
+Python,uv,"Manually, in pyproject.toml via PEP 725",Vendored,Python.h,Self-built wheel hosted on PyPI
+Python,pip,"Manually, in pyproject.toml via PEP 725",Vendored,Python.h,Self-built wheel hosted on PyPI
+Python,poetry,"Manually, in pyproject.toml via PEP 725",Vendored,Python.h,Self-built wheel hosted on PyPI
+Python,pixi,"Automatically, in environment.yml",Packaged,Python.h,Self-built wheel hosted on PyPI
+Python,Hatch,"Manually, in pyproject.toml via PEP 725",Vendored,Python.h,Self-built wheel hosted on PyPI
+Python,Pipenv,"Manually, in pyproject.toml via PEP 725",Vendored,Python.h,Self-built wheel hosted on PyPI
+Python,PDM,"Manually, in pyproject.toml via PEP 725",Vendored,Python.h,Self-built wheel hosted on PyPI
+Node.js,npm,None,"Source vendored, built on install",node.h,Self-built .node file distributed out-of-band
+Node.js,Yarn,None,"Source vendored, built on install",node.h,Self-built .node file distributed out-of-band
+Node.js,pnpm,None,"Source vendored, built on install",node.h,Self-built .node file distributed out-of-band
+Node.js,Bun,None,"Source vendored, built on install",node.h,Self-built .node file distributed out-of-band
+Node.js,Deno,None,"Source vendored, built on install",node.h,Self-built .node file distributed out-of-band
