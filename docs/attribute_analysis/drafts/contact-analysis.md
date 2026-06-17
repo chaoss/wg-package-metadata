@@ -18,6 +18,9 @@ crates.io also provides registry-level identity metadata that is separate from t
 
 This means crates.io provides useful maintainer identity metadata, but not direct contact metadata in the form of email addresses. Contact may sometimes be inferred by following the associated GitHub profile, if the user has chosen to expose contact information there, but this is external to Cargo/crates.io metadata. Consequently, there is no guaranteed relationship between deprecated `authors` values in `Cargo.toml`, the user who published a particular version, and the current crate owners who control future releases.
 
+**API access**: `GET https://crates.io/api/v1/crates/<crate>` exposes version-level fields such as `versions[].published_by` and `versions[].audit_actions[].user`; owner metadata can be retrieved through the linked endpoints, for example `GET https://crates.io/api/v1/crates/<crate>/owners`, `GET https://crates.io/api/v1/crates/<crate>/owner_user`, and `GET https://crates.io/api/v1/crates/<crate>/owner_team`.
+
+
 **References**:
 - [Cargo Reference — Manifest Format: authors field](https://doc.rust-lang.org/cargo/reference/manifest.html#the-authors-field)
 - [Cargo Book — Registry Web API](https://doc.rust-lang.org/cargo/reference/registry-web-api.html)
@@ -29,7 +32,10 @@ This means crates.io provides useful maintainer identity metadata, but not direc
 
 PyPI also maintains a separate ownership model based on user accounts and roles (Owner, Maintainer). However, contact information for those assigned user accounts is not exposed through package metadata or the public PyPI API. Consequently, there is no guaranteed relationship between the email addresses declared in package metadata and the actual PyPI users who currently control the package.
 
+**API access**: `GET https://pypi.org/pypi/<project>/json` exposes the relevant metadata under `info.author_email` and `info.maintainer_email`. It does not expose public email contact information for the PyPI user accounts that own or maintain the project.
+
 **References**:
 - [Python Packaging User Guide — Core Metadata Specifications](https://packaging.python.org/en/latest/specifications/core-metadata/)
 - PEP 621 ([Storing project metadata in pyproject.toml](https://peps.python.org/pep-0621/))
 - [Project roles](https://docs.pypi.org/organization-accounts/roles-entities/#project-roles)
+- [PyPI JSON API](https://docs.pypi.org/api/json/)
